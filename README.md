@@ -1,33 +1,38 @@
+Dependencies:
+
+SDL3      (https://github.com/libsdl-org/SDL)<br/>
+SDL_image (https://github.com/libsdl-org/SDL_image)<br/>
+Source code v zlozke /vendored<br/>
 
 Ako buildnut projekt:
 
-1. Nainstalovat vsetky potrebne packages: www.github.com/libsdl-org/SDL/blob/main/docs/README-linux.md#build-dependencies
-   Ubuntu/Debian:
-        install_dependencies.sh
+Linux:
+   1. Nainstalovat vsetky potrebne packages pre pouzite libraries.<br/>
+      www.github.com/libsdl-org/SDL/blob/main/docs/README-linux.md#build-dependencies<br/>
+         &emsp;apt (Debian/Ubuntu...): install_dependencies.sh
 
-2. Vytvorit build system. Vytvori sa build zlozka v projekte.
-        make_build.sh
+   2. Vytvorit build system. Vytvori sa /build zlozka v root adresari.<br/>
+         &emsp;make_build.sh
    
-3. Buildnut projekt.
-        build_build.sh
+   3. Buildnut projekt.<br/>
+         &emsp;build_build.sh
    
-4. Buildnuta aplikacia bude v build zlozke. 
+   4. Buildnuta aplikacia bude v /build zlozke. 
    
    
-Dodatocne info:
-Projekt pouziva kniznice SDL3, SDL3_image, ktore builduje zo source kodu.
+Dodatocne info:<br/>
 https://github.com/libsdl-org/SDL/blob/main/docs/README-cmake.md
 
-Ubuntu:
-Ak pri spusteni aplikacie vydiet ze aplikacia ide, ale nezobrazuje sa okno:
-    echo $DISPLAY
-        ak sa nic nevypise nenaslo ziadny display, preto nezobrazuje okno
-    echo $XDG_SESSION_TYPE
-        vypise momentalne pouzivany driver
-        wayland
-        x11
-    skusit forsnut pouzitie ineho backendu 
-        export SDL_VIDEODRIVER=wayland
-        export SDL_VIDEODRIVER=x11
-        znovu pustit aplikaciu
+Linux Ubuntu:<br/>
+Ak pri spusteni aplikacie vydiet ze aplikacia ide, ale nezobrazuje sa okno:<br/>
+&emsp;echo $DISPLAY<br/>
+&emsp;&emsp;ak sa nic nevypise nenaslo ziadny display, preto nezobrazuje okno<br/>
+&emsp;echo $XDG_SESSION_TYPE<br/>
+&emsp;&emsp;vypise momentalne pouzivany driver<br/>
+&emsp;&emsp;wayland<br/>
+&emsp;&emsp;x11<br/>
+&emsp;skusit forsnut pouzitie ineho backendu<br/>
+&emsp;&emsp;export SDL_VIDEODRIVER=wayland<br/>
+&emsp;&emsp;export SDL_VIDEODRIVER=x11<br/>
+&emsp;znovu pustit aplikaciu<br/>
 

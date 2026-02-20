@@ -1,27 +1,26 @@
-Dependencies:
+Dependencies:<br/>
 
 SDL3      (https://github.com/libsdl-org/SDL)<br/>
-SDL_image (https://github.com/libsdl-org/SDL_image)<br/>
-Source code v zlozke /vendored<br/>
+lua<br/>
 
-Ako buildnut projekt:
+Ako buildnut projekt:<br/>
 
-Linux:
-   1. Nainstalovat vsetky potrebne packages pre pouzite libraries.<br/>
-      www.github.com/libsdl-org/SDL/blob/main/docs/README-linux.md#build-dependencies<br/>
-         &emsp;apt (Debian/Ubuntu...): install_dependencies.sh
+Linux:<br/>
+   1. Nainstalovat vsetky potrebne packages.<br/>
+	&emsp;www.github.com/libsdl-org/SDL/blob/main/docs/README-linux.md#build-dependencies<br/>
+	&emsp;apt (Debian/Ubuntu...): install_dependencies.sh
 
    2. Vytvorit build system. Vytvori sa /build zlozka v root adresari.<br/>
-         &emsp;make_build.sh
-   
+	&emsp;make_build.sh
+
    3. Buildnut projekt.<br/>
-         &emsp;build_build.sh
-   
+	&emsp;build_build.sh
+
    4. Buildnuta aplikacia bude v /build zlozke. 
-   
-   
+
 Dodatocne info:<br/>
-https://github.com/libsdl-org/SDL/blob/main/docs/README-cmake.md
+Projekt pouziva SDL3, lua ktore builduje zo source kodu.<br/>
+https://github.com/libsdl-org/SDL/blob/main/docs/README-cmake.md<br/>
 
 Linux Ubuntu:<br/>
 Ak pri spusteni aplikacie vydiet ze aplikacia ide, ale nezobrazuje sa okno:<br/>

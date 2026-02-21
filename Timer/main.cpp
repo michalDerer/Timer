@@ -4,6 +4,7 @@
 
 #include "SDL3/SDL.h"
 // #include "SDL3/SDL_main.h"
+#include "SDL3_image/SDL_image.h"
 
 extern "C"
 {
@@ -138,8 +139,8 @@ int main(int argc, char** argv)
     }
     */
 
-    //if (CheckLua(L, luaL_dofile(L, (directory + "\\Script.lua").c_str() )))
-    if (CheckLua(L, luaL_dofile(L, "Script.lua")))
+    if (CheckLua(L, luaL_dofile(L, (directory + "/Script.lua").c_str() )))
+    //if (CheckLua(L, luaL_dofile(L, "Script.lua")))
     {
         lua_getglobal(L, "AddStuff");
         if (lua_isfunction(L, -1))
@@ -158,70 +159,92 @@ int main(int argc, char** argv)
   //---------------------------------------------------------------------------------------------------------------
   
   
-  if (SDL_Init(SDL_INIT_VIDEO) < 0)
-  {
+if (!SDL_Init(SDL_INIT_VIDEO) < 0)
+{
     SDL_Log("SDL_Init failed: %s", SDL_GetError());
     return 1;
-  }
+}
 
-  SDL_Window* window = SDL_CreateWindow(
+//v 3.5 netreba init SDL_image
+// if (IMG_Init(IMG_INIT_PNG) == 0)
+// {
+//     SDL_Log("IMG_Init failed: %s", SDL_GetError());
+//     return 1;
+// }
+
+SDL_Window* window = SDL_CreateWindow(
     "Timer",
     800,
     600,
-    //SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE
-    0
-  );
+    SDL_WINDOW_RESIZABLE
+);
 
-  SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
-
-
-  if (!window || !renderer)
-  {
-    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window/renderer %s", SDL_GetError());
+if (!window)
+{
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window %s", SDL_GetError());
     return 1;
-  }
+}
+
+SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
 
 
-  SDL_Texture* texture = NULL;
-
-  if (!texture)
-  {
-    SDL_Log("Failed to load image: %s", SDL_GetError());
+if (!renderer)
+{
+    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create renderer %s", SDL_GetError());
     return 1;
-  }
+}
+
+SDL_Surface* surface = IMG_Load( (directory + "/pika.png").c_str() );
+
+if (!surface)
+{
+    SDL_Log("IMG_Load failed: %s", SDL_GetError());
+    return 1;
+}
+
+SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+SDL_DestroySurface(surface);
+surface = NULL;
+
+if (!texture)
+{
+   SDL_Log("Failed to create texture: %s", SDL_GetError());
+   return 1;
+}
 
 
-  bool done = false;
-  while(!done)
-  {
+bool done = false;
+while(!done)
+{
     SDL_Event event;
 
     while(SDL_PollEvent(&event))
     {
-      if (event.type == SDL_EVENT_QUIT)
-      {
-        done = true;
-      }
+        if (event.type == SDL_EVENT_QUIT)
+        {
+            done = true;
+        }
     }
 
-    
+
+    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
     SDL_RenderClear(renderer);
     SDL_RenderTexture(renderer, texture, NULL, NULL);
     SDL_RenderPresent(renderer);
     SDL_Delay(16);
+}
 
-  }
+SDL_DestroyTexture(texture);
+SDL_DestroyRenderer(renderer);
+SDL_DestroyWindow(window);
 
-  SDL_DestroyTexture(texture);
-  SDL_DestroyRenderer(renderer);
-  SDL_DestroyWindow(window);
-  
-  SDL_Quit();
+SDL_Quit();
 
 
 
 //--------------------------------------------------------------------------
 
+//SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
 /*
 if (SDL_Init(SDL_INIT_VIDEO) < 0) {
         printf("SDL_Init failed: %s\n", SDL_GetError());
@@ -231,7 +254,7 @@ if (SDL_Init(SDL_INIT_VIDEO) < 0) {
     SDL_Window* window = SDL_CreateWindow(
         "SDL3 Window Example",
         800, 600,
-        SDL_WINDOW_RESIZABLE
+        0 //SDL_WINDOW_RESIZABLE
     );
 
     if (!window) {
@@ -258,7 +281,7 @@ if (SDL_Init(SDL_INIT_VIDEO) < 0) {
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 30, 30, 30, 255);
+        SDL_SetRenderDrawColor(renderer, 128, 30, 30, 255);
         SDL_RenderClear(renderer);
         SDL_RenderPresent(renderer);
     }

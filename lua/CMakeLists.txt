@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 3.7)
-
-# Lua core library sources
 #file(GLOB LUA_SOURCES *.c)
 set(LUA_SOURCES
     lapi.c 
@@ -35,15 +32,22 @@ set(LUA_SOURCES
     lundump.c 
     lutf8lib.c 
     lvm.c 
-    lzio.c
-)
+    lzio.c)
 
-add_library(lua_s_lib STATIC ${LUA_SOURCES}) #prida static library subprojekt do TimerSolution
+#prida static library subprojekt do TimerSolution
+add_library(lua STATIC ${LUA_SOURCES}) 
 
-target_include_directories(lua_s_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}) #headre su v rovnakej zlozke ako sources, samotny projekt preto nepotrebuje include pridavat, ale ostatne likovane projekty na tento budu mat tymto prikazom k dispozicii headre.
-#target_include_directories(lua_s_lib PUBLIC)
+
+#lua je c kod treba nejakym sposobom zaistit, moznost
+#set_target_properties(lua PROPERTIES INKER_LANGUAGE C)
+
+
+#headre su v rovnakej zlozke ako sources, samotny projekt preto nepotrebuje include pridavat, 
+#ale ostatne likovane projekty na tento budu mat tymto prikazom k dispozicii headre.
+target_include_directories(lua PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}) 
+#target_include_directories(lua PUBLIC)
 
 
 # Optional: Lua interpreter
-#add_executable(lua lua.c)
-#target_link_libraries(lua lua_static m)
+#add_executable(luai lua.c)
+#target_link_libraries(luai lua m)

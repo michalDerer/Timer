@@ -1,0 +1,6 @@
+@echo off
+cmake -S . -B build ^
+REM  -DSDL_WAYLAND=ON ^
+REM  -DSDL_X11=ON ^
+-DCMAKE_BUILD_TYPE=Debug ^
+-DSDLIMAGE_VENDORED=OFF 

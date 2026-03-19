@@ -1,5 +1,6 @@
 set(TIMER_SOURCES
-    "main.cpp")
+    "main.cpp"
+    "rectTransform.cpp")
 
 add_executable(Timer ${TIMER_SOURCES})
 

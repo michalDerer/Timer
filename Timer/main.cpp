@@ -1,298 +1,264 @@
 
 #include <iostream>
 #include <filesystem>
+#include <string>
 
 #include "SDL3/SDL.h"
-// #include "SDL3/SDL_main.h"
 #include "SDL3_image/SDL_image.h"
 
-extern "C"
-{
-#include "lua.h"
-#include "lauxlib.h"
-#include "lualib.h"
-}
-
-
-
-bool CheckLua(lua_State* L, int r)
-{
-    if (r != LUA_OK)
-    {
-        std::string errormsg = lua_tostring(L, -1);
-        std::cout << errormsg << "\n";
-        return false;
-    }
-    return true;
-}
-
-struct Player
-{
-    std::string PlayerTitle;
-    std::string PlayerName;
-    std::string PlayerFamily;
-    int PlayerLevel;
-} player;
-
+#include "rectTransform.hpp"
 
 
 
 //------------------------------------------------------------------------------------------------------------
 
+
+const char* pathToExe = NULL;
+
+
+//------------------------------------------------------------------------------------------------------------
+
+
+void calculate_rect(float texAsp, float winW, float winH, SDL_FRect& rect)
+{
+    if (winH * texAsp <= winW)
+    {
+        rect.w = winH * texAsp;
+        rect.h = winH;
+        rect.x = (winW / 2.0f) - (rect.w / 2.0f);
+        rect.y = 0;
+    }
+    else
+    {
+        rect.w = winW;
+        rect.h = winW / texAsp;
+        rect.x = 0;
+        rect.y = (winH / 2.0f) - (rect.h / 2.0f);
+    }
+}
+
+
+void init_root_path(int& argc, char**& argv)
+{
+    std::cout << "argc: " << argc << "\n";
+    
+    for (int i = 0; i < argc; i++)
+    {
+        std::cout << "argv["<< i <<"]: " << argv[i] << "\n";
+    }
+
+    std::cout << "std::filesystem::current_path: " << std::filesystem::current_path() << "\n";
+
+    pathToExe = SDL_GetBasePath();
+    std::cout << "SDL_GetBasePath: " << pathToExe << "\n";
+
+}
+
+
+//------------------------------------------------------------------------------------------------------------
+
+
 int main(int argc, char** argv)
 {
+    
+    //SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
 
-  for(int i = 0; i < argc; i++)
+    if (!SDL_Init(SDL_INIT_VIDEO))
     {
-        std::cout << argv[i] << "\n";
-    }
-
-    std::cout << "filesystem path: " << std::filesystem::current_path() << "\n";
-
-    std::string path(argv[0]);
-    // Find last directory separator
-    size_t pos = path.find_last_of("\\/");
-
-    std::string directory;
-    if (pos != std::string::npos) {
-        directory = path.substr(0, pos);
-    }
-    else {
-        directory = "."; // no separator found, use current dir
-    }
-
-    std::cout << "Directory: " << directory << std::endl;
-
-
-
-
-
-    std::string cmd = "a = 7  + 11 + math.sin(23.7)";
-
-    lua_State* L = luaL_newstate();
-    luaL_openlibs(L);
-
-
-    /*
-    if (CheckLua(L, luaL_dostring(L, cmd.c_str())))
-    {
-        lua_getglobal(L, "a");
-        if (lua_isnumber(L, -1))
-        {
-            float a_in_cpp = (float)lua_tonumber(L, -1);
-            std::cout << "a is: " << a_in_cpp << "\n";
-        }
-    }
-
-    cmd = "a = a +100";
-
-    if (CheckLua(L, luaL_dostring(L, cmd.c_str())))
-    {
-        lua_getglobal(L, "a");
-        if (lua_isnumber(L, -1))
-        {
-            float a_in_cpp = (float)lua_tonumber(L, -1);
-            std::cout << "a is: " << a_in_cpp << "\n";
-        }
-    }
-    */
-
-    /*if (CheckLua(L, luaL_dofile(L, "Script.lua")))
-    {
-        lua_getglobal(L, "PlayerTitle");
-        if (lua_isstring(L, -1))
-        {
-            player.PlayerTitle = (std::string)lua_tostring(L, -1);
-            std::cout << "PlayerTitle is: " << player.PlayerTitle << "\n";
-        }
-    }*/
-
-    /*
-    if (CheckLua(L, luaL_dofile(L, "Script.lua")))
-    {
-        lua_getglobal(L, "player");
-        if (lua_istable(L, -1))
-        {
-
-            lua_pushstring(L, "PlayerTitle");
-            lua_gettable(L, -2); //popne stack na pozicii -1 a pusne value popnuteho kluca
-            player.PlayerTitle = lua_tostring(L, -1);
-            lua_pop(L, 1); //nakoniec value na vrchu staku popneme, aby bola na vrchu tabulka
-
-            lua_pushstring(L, "PlayerName");
-            lua_gettable(L, -2);
-            player.PlayerName = lua_tostring(L, -1);
-            lua_pop(L, 1);
-
-            lua_pushstring(L, "PlayerFamily");
-            lua_gettable(L, -2);
-            player.PlayerFamily = lua_tostring(L, -1);
-            lua_pop(L, 1);
-
-            lua_pushstring(L, "PlayerLevel");
-            lua_gettable(L, -2);
-            player.PlayerLevel = lua_tonumber(L, -1);
-            lua_pop(L, 1);
-
-            std::cout << player.PlayerFamily << " " << player.PlayerLevel << " " << player.PlayerName << " " << player.PlayerTitle << "\n";
-        }
-    }
-    */
-
-    if (CheckLua(L, luaL_dofile(L, (directory + "/Script.lua").c_str() )))
-    //if (CheckLua(L, luaL_dofile(L, "Script.lua")))
-    {
-        lua_getglobal(L, "AddStuff");
-        if (lua_isfunction(L, -1))
-        {
-            lua_pushnumber(L, 3.5f);
-            lua_pushnumber(L, 7.1f);
-
-            if (CheckLua(L, lua_pcall(L, 2, 1, 0)))
-            {
-                std::cout << "executed result: " << lua_tonumber(L, -1) << "\n";
-            }
-        }
-    }
-
-
-  //---------------------------------------------------------------------------------------------------------------
-  
-  
-if (!SDL_Init(SDL_INIT_VIDEO) < 0)
-{
-    SDL_Log("SDL_Init failed: %s", SDL_GetError());
-    return 1;
-}
-
-//v 3.5 netreba init SDL_image
-// if (IMG_Init(IMG_INIT_PNG) == 0)
-// {
-//     SDL_Log("IMG_Init failed: %s", SDL_GetError());
-//     return 1;
-// }
-
-SDL_Window* window = SDL_CreateWindow(
-    "Timer",
-    800,
-    600,
-    SDL_WINDOW_RESIZABLE
-);
-
-if (!window)
-{
-    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window %s", SDL_GetError());
-    return 1;
-}
-
-SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
-
-
-if (!renderer)
-{
-    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create renderer %s", SDL_GetError());
-    return 1;
-}
-
-SDL_Surface* surface = IMG_Load( (directory + "/pika.png").c_str() );
-
-if (!surface)
-{
-    SDL_Log("IMG_Load failed: %s", SDL_GetError());
-    return 1;
-}
-
-SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
-SDL_DestroySurface(surface);
-surface = NULL;
-
-if (!texture)
-{
-   SDL_Log("Failed to create texture: %s", SDL_GetError());
-   return 1;
-}
-
-
-bool done = false;
-while(!done)
-{
-    SDL_Event event;
-
-    while(SDL_PollEvent(&event))
-    {
-        if (event.type == SDL_EVENT_QUIT)
-        {
-            done = true;
-        }
-    }
-
-
-    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
-    SDL_RenderClear(renderer);
-    SDL_RenderTexture(renderer, texture, NULL, NULL);
-    SDL_RenderPresent(renderer);
-    SDL_Delay(16);
-}
-
-SDL_DestroyTexture(texture);
-SDL_DestroyRenderer(renderer);
-SDL_DestroyWindow(window);
-
-SDL_Quit();
-
-
-
-//--------------------------------------------------------------------------
-
-//SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
-/*
-if (SDL_Init(SDL_INIT_VIDEO) < 0) {
-        printf("SDL_Init failed: %s\n", SDL_GetError());
+        SDL_Log("SDL_Init failed: %s", SDL_GetError());
         return 1;
     }
 
-    SDL_Window* window = SDL_CreateWindow(
-        "SDL3 Window Example",
-        800, 600,
-        0 //SDL_WINDOW_RESIZABLE
-    );
+    SDL_Window* window = NULL;
+    SDL_Renderer* renderer = NULL;
 
-    if (!window) {
-        printf("SDL_CreateWindow failed: %s\n", SDL_GetError());
+    // SDL_Window* window = SDL_CreateWindow(
+    //     "Timer",
+    //     800, 600,
+    //     SDL_WINDOW_RESIZABLE);
+
+    // SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
+
+    if(!SDL_CreateWindowAndRenderer(
+        "Timer",
+        800, 600,
+        SDL_WINDOW_RESIZABLE,
+        &window, &renderer))
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window or renderer or both %s", SDL_GetError());
         SDL_Quit();
         return 1;
     }
 
-    SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
-    if (!renderer) {
-        printf("SDL_CreateRenderer failed: %s\n", SDL_GetError());
+    // if (!window)
+    // {
+    //     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window %s", SDL_GetError());
+    //     return 1;
+    // }
+
+    // if (!renderer)
+    // {
+    //     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create renderer %s", SDL_GetError());
+    //     return 1;
+    // }
+
+    init_root_path(argc, argv);
+
+    SDL_Surface* surface = IMG_Load( std::string(pathToExe).append("/pika.png").c_str() );
+
+    if (!surface)
+    {
+        SDL_Log("IMG_Load failed: %s", SDL_GetError());
+        SDL_free((void*)pathToExe);
+        SDL_DestroyRenderer(renderer);
         SDL_DestroyWindow(window);
         SDL_Quit();
         return 1;
     }
 
-    int running = 1;
-    SDL_Event event;
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(renderer, surface);
+    SDL_DestroySurface(surface);
+    surface = NULL;
 
-    while (running) {
-        while (SDL_PollEvent(&event)) {
-            if (event.type == SDL_EVENT_QUIT) {
-                running = 0;
+    if (!texture)
+    {
+        SDL_Log("Failed to create texture: %s", SDL_GetError());
+        SDL_free((void*)pathToExe);
+        SDL_DestroyRenderer(renderer);
+        SDL_DestroyWindow(window);
+        SDL_Quit();
+        return 1;
+    }
+
+    float texW, texH;
+    SDL_GetTextureSize(texture, &texW, &texH);
+    
+    int winW, winH;
+    SDL_GetWindowSize(window, &winW, &winH);
+
+    SDL_FRect windowRect {.x = 0, .y = 0, .w = static_cast<float>(winW), .h = static_cast<float>(winH)};
+
+    SDL_FRect textureSrcRect;
+    textureSrcRect.x = 0.0f;
+    textureSrcRect.y = 0.0f;
+    textureSrcRect.w = texW;
+    textureSrcRect.h = texH;
+    float texAsp = texW / texH;
+
+    SDL_FRect textureDstRect;
+    calculate_rect(texAsp, winW, winH, textureDstRect);
+
+    RectTransform rt;
+    rt.set_anchorMinX(0.1f);
+    rt.set_anchorMaxX(0.9f);
+    rt.set_anchorMinY(0.1f);
+    rt.set_anchorMaxY(0.9f);
+    rt.set_right(1.f);
+    rt.set_bottom(1.f);
+    RectTransform* rt2 = rt.create_child();
+    rt2->set_anchorMinX(0.2f);
+    rt2->set_anchorMaxX(0.8f);
+    rt2->set_anchorMinY(0.2f);
+    rt2->set_anchorMaxY(0.8f);
+    rt2->set_right(1.f);
+    rt2->set_bottom(1.f);
+    
+    bool done = false;  
+
+    while(!done)
+    {
+        SDL_Event event;
+
+        while(SDL_PollEvent(&event))
+        {
+            if (event.type == SDL_EVENT_QUIT)
+            {
+                done = true;
+                std::cout << "EVENT_QUIT\n";
+            }
+            else if (event.type == SDL_EVENT_WINDOW_RESIZED)
+            {
+                winW = event.window.data1;
+                winH = event.window.data2;
+                
+                std::cout << "EVENT_WINDOW_RESIZED w: " << winW << "h: " << winH << "\n";
+
+                windowRect.x = 0;
+                windowRect.y = 0;
+                windowRect.w = static_cast<float>(winW);
+                windowRect.h = static_cast<float>(winH);
+
+                calculate_rect(texAsp, winW, winH, textureDstRect);
             }
         }
 
-        SDL_SetRenderDrawColor(renderer, 128, 30, 30, 255);
+        //clear
+        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
         SDL_RenderClear(renderer);
+
+
+        {
+            //rt.update_rect(windowRect);
+            //rt2->update_rect(rt.get_rect());
+
+            std::vector<RectTransform*> transformy{&rt};
+
+            while (!transformy.empty())
+            {
+                RectTransform* cur = transformy.front();
+                transformy.erase(transformy.begin());
+
+                if (cur->get_parent() == NULL)
+                {
+                    cur->update_rect(windowRect);
+                }
+                else
+                {
+                    cur->update_rect(cur->get_parent()->get_rect());
+                }
+
+                for (int i = 0; i < cur->get_child_count(); i++)
+                {
+                    transformy.push_back(cur->get_child(i));
+                }
+            }
+        }
+
+        {
+            //rt.draw(renderer);
+            //rt2->draw(renderer);
+            
+            std::vector<RectTransform*> transformy{&rt};
+
+            while (!transformy.empty())
+            {
+                RectTransform* cur = transformy.front();
+                transformy.erase(transformy.begin());
+
+                cur->draw(renderer);
+
+                for (int i = 0; i < cur->get_child_count(); i++)
+                {
+                    transformy.push_back(cur->get_child(i));
+                }
+            }
+        }
+
+        SDL_RenderTexture(renderer, texture, &textureSrcRect, &textureDstRect);
+        // SDL_RenderTextureRotated(renderer, texture, &srcRect, &dstRect, 90.f, NULL, SDL_FLIP_HORIZONTAL);
+        
         SDL_RenderPresent(renderer);
+        SDL_Delay(16);
     }
 
+
+    SDL_free((void*)pathToExe);
+    SDL_DestroyTexture(texture);
     SDL_DestroyRenderer(renderer);
     SDL_DestroyWindow(window);
+
     SDL_Quit();
-*/
 
-
-
-  return 0;
+    return 0;
 }
 

@@ -35,15 +35,15 @@ public:
     // -----------------------------
 
 
-    RectTransform();// = default;
+    RectTransform();                                    //= default;
 
-    RectTransform(const RectTransform&) = delete;                   //Copying disabled
-    RectTransform& operator=(const RectTransform&) = delete;        
+    RectTransform(const RectTransform&)                 = delete;   //Copying disabled
+    RectTransform& operator=(const RectTransform&)      = delete;        
 
-    RectTransform(RectTransform&&) noexcept = default;              //Moving allowed
-    RectTransform& operator=(RectTransform&&) noexcept = default;   
+    RectTransform(RectTransform&&) noexcept             = default;  //Moving allowed
+    RectTransform& operator=(RectTransform&&) noexcept  = default;   
 
-    ~RectTransform() = default;
+    ~RectTransform()                                    = default;
 
     
     // -----------------------------
@@ -104,5 +104,33 @@ public:
 
 };
 
+//----------------------------------------------------------------------------------------------------------
 
+class Time
+{
+    static float m_deltaTime;
 
+public:
+
+    static float get_deltaTime();
+    static void set_deltaTime(float deltaTime);
+
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+class Behaviour
+{
+public:
+    virtual void update() = 0;
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+class Image : public Behaviour
+{
+public:
+    void update() override;
+};
+
+//----------------------------------------------------------------------------------------------------------

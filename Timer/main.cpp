@@ -1,12 +1,13 @@
 
 #include <iostream>
+#include <cstdio>
 #include <filesystem>
 #include <string>
 
 #include "SDL3/SDL.h"
 #include "SDL3_image/SDL_image.h"
 
-#include "rectTransform.hpp"
+#include "core.hpp"
 
 
 
@@ -60,8 +61,8 @@ void init_root_path(int& argc, char**& argv)
 
 int main(int argc, char** argv)
 {
-    
     //SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
+    Time::set_deltaTime(44);
 
     if (!SDL_Init(SDL_INIT_VIDEO))
     {
@@ -146,7 +147,7 @@ int main(int argc, char** argv)
     float texAsp = texW / texH;
 
     SDL_FRect textureDstRect;
-    calculate_rect(texAsp, winW, winH, textureDstRect);
+    calculate_rect(texAsp, static_cast<float>(winW), static_cast<float>(winH), textureDstRect);
 
     RectTransform rt;
     rt.set_anchorMinX(0.1f);
@@ -188,7 +189,7 @@ int main(int argc, char** argv)
                 windowRect.w = static_cast<float>(winW);
                 windowRect.h = static_cast<float>(winH);
 
-                calculate_rect(texAsp, winW, winH, textureDstRect);
+                calculate_rect(texAsp, static_cast<float>(winW), static_cast<float>(winH), textureDstRect);
             }
         }
 
@@ -251,6 +252,8 @@ int main(int argc, char** argv)
         SDL_Delay(16);
     }
 
+    
+    printf("delta time: %f", Time::get_deltaTime());
 
     SDL_free((void*)pathToExe);
     SDL_DestroyTexture(texture);

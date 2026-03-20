@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "rectTransform.hpp"
+#include "core.hpp"
 
 
 RectTransform::RectTransform() : 
@@ -119,7 +119,7 @@ void RectTransform::set_parent(RectTransform* parent)
 int RectTransform::get_child_count() noexcept
 { 
     // return static_cast<int>(children.size());
-    return m_children.size();
+    return static_cast<int>(m_children.size());
 }
 
 RectTransform* RectTransform::get_child(int idx)
@@ -197,3 +197,24 @@ void RectTransform::draw(SDL_Renderer* renderer) const
     SDL_RenderLine(renderer, m_rect.x + m_rect.w, m_rect.y + m_rect.h, m_rect.x, m_rect.y + m_rect.h);
     SDL_RenderLine(renderer, m_rect.x, m_rect.y + m_rect.h, m_rect.x, m_rect.y);
 }
+
+//----------------------------------------------------------------------------------------------------------
+
+float Time::m_deltaTime = .0f;
+
+float Time::get_deltaTime()
+{
+    return m_deltaTime;
+}
+
+void Time::set_deltaTime(float deltaTime)
+{
+    m_deltaTime = deltaTime;
+}
+
+//----------------------------------------------------------------------------------------------------------
+
+void Image::update()
+{
+
+};

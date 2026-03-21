@@ -9,6 +9,7 @@ class RectTransform
 {
 
 private:
+
     float m_anchorMinX;   //relativny posun zlava     rozsah 0f - 1f
     float m_anchorMinY;   //relativny posun zhora     rozsah 0f - 1f
 
@@ -101,7 +102,8 @@ public:
 
     void draw(SDL_Renderer* renderer) const;
 
-
+    template<typename T>
+    T* get_behaviour();
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -121,7 +123,17 @@ public:
 
 class Behaviour
 {
+    RectTransform* m_transform;
+
 public:
+
+    Behaviour() = delete;
+    Behaviour(RectTransform* transform);
+
+
+    RectTransform* get_transform();
+
+
     virtual void update() = 0;
 };
 
@@ -129,8 +141,21 @@ public:
 
 class Image : public Behaviour
 {
+    SDL_Texture* m_texture;
+
 public:
+
+    Image() = delete;
+    //Image(RectTransform* transform, SDL_Surface* surface);
+    Image(RectTransform* transform, SDL_Texture* texture);
+
+
+    SDL_Texture* get_texture();
+
+
     void update() override;
+
+    void update(SDL_Renderer* renderer);
 };
 
 //----------------------------------------------------------------------------------------------------------

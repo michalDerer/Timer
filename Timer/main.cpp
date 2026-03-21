@@ -139,15 +139,17 @@ int main(int argc, char** argv)
 
     SDL_FRect windowRect {.x = 0, .y = 0, .w = static_cast<float>(winW), .h = static_cast<float>(winH)};
 
+    /*
     SDL_FRect textureSrcRect;
     textureSrcRect.x = 0.0f;
     textureSrcRect.y = 0.0f;
     textureSrcRect.w = texW;
     textureSrcRect.h = texH;
     float texAsp = texW / texH;
+    */
 
-    SDL_FRect textureDstRect;
-    calculate_rect(texAsp, static_cast<float>(winW), static_cast<float>(winH), textureDstRect);
+    //SDL_FRect textureDstRect;
+    //calculate_rect(texAsp, static_cast<float>(winW), static_cast<float>(winH), textureDstRect);
 
     RectTransform rt;
     rt.set_anchorMinX(0.1f);
@@ -164,6 +166,37 @@ int main(int argc, char** argv)
     rt2->set_right(1.f);
     rt2->set_bottom(1.f);
     
+    Image img{ rt2, texture };
+
+
+    {
+        //rt.update_rect(windowRect);
+        //rt2->update_rect(rt.get_rect());
+
+        std::vector<RectTransform*> transformy{ &rt };
+
+        while (!transformy.empty())
+        {
+            RectTransform* cur = transformy.front();
+            transformy.erase(transformy.begin());
+
+            if (cur->get_parent() == NULL)
+            {
+                cur->update_rect(windowRect);
+            }
+            else
+            {
+                cur->update_rect(cur->get_parent()->get_rect());
+            }
+
+            for (int i = 0; i < cur->get_child_count(); i++)
+            {
+                transformy.push_back(cur->get_child(i));
+            }
+        }
+    }
+
+
     bool done = false;  
 
     while(!done)
@@ -189,41 +222,40 @@ int main(int argc, char** argv)
                 windowRect.w = static_cast<float>(winW);
                 windowRect.h = static_cast<float>(winH);
 
-                calculate_rect(texAsp, static_cast<float>(winW), static_cast<float>(winH), textureDstRect);
+                //calculate_rect(texAsp, static_cast<float>(winW), static_cast<float>(winH), textureDstRect);
+
+                {
+                    //rt.update_rect(windowRect);
+                    //rt2->update_rect(rt.get_rect());
+
+                    std::vector<RectTransform*> transformy{ &rt };
+
+                    while (!transformy.empty())
+                    {
+                        RectTransform* cur = transformy.front();
+                        transformy.erase(transformy.begin());
+
+                        if (cur->get_parent() == NULL)
+                        {
+                            cur->update_rect(windowRect);
+                        }
+                        else
+                        {
+                            cur->update_rect(cur->get_parent()->get_rect());
+                        }
+
+                        for (int i = 0; i < cur->get_child_count(); i++)
+                        {
+                            transformy.push_back(cur->get_child(i));
+                        }
+                    }
+                }
             }
         }
 
         //clear
         SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
         SDL_RenderClear(renderer);
-
-
-        {
-            //rt.update_rect(windowRect);
-            //rt2->update_rect(rt.get_rect());
-
-            std::vector<RectTransform*> transformy{&rt};
-
-            while (!transformy.empty())
-            {
-                RectTransform* cur = transformy.front();
-                transformy.erase(transformy.begin());
-
-                if (cur->get_parent() == NULL)
-                {
-                    cur->update_rect(windowRect);
-                }
-                else
-                {
-                    cur->update_rect(cur->get_parent()->get_rect());
-                }
-
-                for (int i = 0; i < cur->get_child_count(); i++)
-                {
-                    transformy.push_back(cur->get_child(i));
-                }
-            }
-        }
 
         {
             //rt.draw(renderer);
@@ -245,22 +277,30 @@ int main(int argc, char** argv)
             }
         }
 
-        SDL_RenderTexture(renderer, texture, &textureSrcRect, &textureDstRect);
-        // SDL_RenderTextureRotated(renderer, texture, &srcRect, &dstRect, 90.f, NULL, SDL_FLIP_HORIZONTAL);
-        
+        //SDL_RenderTexture(renderer, texture, &textureSrcRect, &textureDstRect);
+        //SDL_RenderTextureRotated(renderer, texture, &srcRect, &dstRect, 90.f, NULL, SDL_FLIP_HORIZONTAL);
+        img.update(renderer);
+
+
         SDL_RenderPresent(renderer);
         SDL_Delay(16);
     }
 
     
-    printf("delta time: %f", Time::get_deltaTime());
+    printf("1");
 
     SDL_free((void*)pathToExe);
+    printf("2");
     SDL_DestroyTexture(texture);
+    printf("3");
     SDL_DestroyRenderer(renderer);
+    printf("4");
     SDL_DestroyWindow(window);
+    printf("5");
 
     SDL_Quit();
+    printf("6");
+
 
     return 0;
 }

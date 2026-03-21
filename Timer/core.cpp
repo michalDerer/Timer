@@ -198,7 +198,18 @@ void RectTransform::draw(SDL_Renderer* renderer) const
     SDL_RenderLine(renderer, m_rect.x, m_rect.y + m_rect.h, m_rect.x, m_rect.y);
 }
 
-//----------------------------------------------------------------------------------------------------------
+template<typename T>
+T* RectTransform::get_behaviour()
+{
+   /* if (auto casted = dynamic_cast<T*>(behaviur))
+    {
+        return casted;
+    }*/
+
+    return nullptr;
+}
+
+//Time---------------------------------------------------------------------------------------------------------------
 
 float Time::m_deltaTime = .0f;
 
@@ -212,9 +223,38 @@ void Time::set_deltaTime(float deltaTime)
     m_deltaTime = deltaTime;
 }
 
-//----------------------------------------------------------------------------------------------------------
+//Behaviour----------------------------------------------------------------------------------------------------------
+
+Behaviour::Behaviour(RectTransform* transform) : m_transform(transform) {}
+
+RectTransform* Behaviour::get_transform()
+{
+    return m_transform;
+}
+
+//Image--------------------------------------------------------------------------------------------------------------
+
+Image::Image(RectTransform* transform, SDL_Texture* texture) : Behaviour(transform), m_texture(texture) {}
+
+SDL_Texture* Image::get_texture()
+{
+    return m_texture;
+}
 
 void Image::update()
 {
 
 };
+
+void Image::update(SDL_Renderer* renderer)
+{
+    SDL_FRect sRect
+    { 
+        .w = static_cast<float>(m_texture->w),
+        .h = static_cast<float>(m_texture->h)
+    };
+
+    SDL_FRect dRect = get_transform()->get_rect();
+
+    SDL_RenderTexture(renderer, m_texture, &sRect, &dRect);
+}

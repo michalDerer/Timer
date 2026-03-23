@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <stdexcept>
 
 #include "core.hpp"
 
@@ -15,7 +16,10 @@ RectTransform::RectTransform() :
     //m_pivotOffsetX(.0f),
     //m_pivotOffsetY(.0f),
     m_rect(),
-    m_parent(NULL)
+    m_parent(NULL),
+    m_children(),
+    m_behaviours()
+
 {}
 
 
@@ -198,17 +202,6 @@ void RectTransform::draw(SDL_Renderer* renderer) const
     SDL_RenderLine(renderer, m_rect.x, m_rect.y + m_rect.h, m_rect.x, m_rect.y);
 }
 
-template<typename T>
-T* RectTransform::get_behaviour()
-{
-   /* if (auto casted = dynamic_cast<T*>(behaviur))
-    {
-        return casted;
-    }*/
-
-    return nullptr;
-}
-
 //Time---------------------------------------------------------------------------------------------------------------
 
 float Time::m_deltaTime = .0f;
@@ -234,7 +227,10 @@ RectTransform* Behaviour::get_transform()
 
 //Image--------------------------------------------------------------------------------------------------------------
 
-Image::Image(RectTransform* transform, SDL_Texture* texture) : Behaviour(transform), m_texture(texture) {}
+Image::Image(RectTransform* transform, SDL_Texture* texture) : Behaviour(transform), m_texture(texture) 
+{
+    if (!transform) throw std::runtime_error("arg transform is null");
+}
 
 SDL_Texture* Image::get_texture()
 {
@@ -248,13 +244,23 @@ void Image::update()
 
 void Image::update(SDL_Renderer* renderer)
 {
-    SDL_FRect sRect
-    { 
-        .w = static_cast<float>(m_texture->w),
-        .h = static_cast<float>(m_texture->h)
-    };
-
     SDL_FRect dRect = get_transform()->get_rect();
 
-    SDL_RenderTexture(renderer, m_texture, &sRect, &dRect);
+    if (m_texture)
+    {
+        SDL_FRect sRect
+        {
+            .w = static_cast<float>(m_texture->w),
+            .h = static_cast<float>(m_texture->h)
+        };
+
+        SDL_RenderTexture(renderer, m_texture, &sRect, &dRect);
+    }
+    else
+    {
+        //Magenta color(RGB: 255, 0, 255)
+        SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
+        //SDL_GetRenderDrawColor()
+        SDL_RenderFillRect(renderer, &dRect);
+    }
 }

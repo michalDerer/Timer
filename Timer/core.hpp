@@ -5,6 +5,84 @@
 #include "SDL3/SDL.h"
 
 
+
+class RectTransform;    //forward declaration tuna na zaciatku rozbija circular dependency medzi Behaviour a RectTransform 
+
+//----------------------------------------------------------------------------------------------------------
+
+/// <summary>
+/// 
+/// </summary>
+class Time
+{
+    static float m_deltaTime;
+
+public:
+
+    static float get_deltaTime();
+    static void set_deltaTime(float deltaTime);
+
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+/// <summary>
+/// 
+/// </summary>
+class Behaviour
+{
+    RectTransform* m_transform;
+
+public:
+
+    Behaviour() = delete;
+    Behaviour(RectTransform* transform);
+
+    Behaviour(const Behaviour& other)                   = delete;   //copy constructor
+    Behaviour& operator=(const Behaviour& other)        = delete;   //copy assignment
+
+    Behaviour(Behaviour&& other) noexcept               = default;  //move constructor
+    Behaviour& operator=(Behaviour&& other) noexcept    = default;  //move assignment
+
+    virtual ~Behaviour() = default;
+
+
+    RectTransform* get_transform();
+
+
+    virtual void update() = 0;
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+class Image : public Behaviour
+{
+    SDL_Texture* m_texture;
+
+public:
+
+    Image()                                                 = delete;
+    Image(RectTransform* transform, SDL_Texture* texture);
+
+    Image(const Image& other)                               = delete;   //copy constructor
+    Image& operator=(const Image& other)                    = delete;   //copy assignment
+
+    Image(Image&& other) noexcept                           = delete;   //move constructor
+    Image& operator=(Image&& other) noexcept                = delete;   //move assignment
+
+    ~Image() override                                       = default;
+
+
+    SDL_Texture* get_texture();
+
+    void update() override;
+
+    void update(SDL_Renderer* renderer);
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+
 class RectTransform
 {
 
@@ -28,6 +106,8 @@ private:
     
     RectTransform* m_parent;
     std::vector<RectTransform*> m_children;
+
+    std::vector<Behaviour*> m_behaviours;
     
 public:
     
@@ -41,8 +121,8 @@ public:
     RectTransform(const RectTransform&)                 = delete;   //Copying disabled
     RectTransform& operator=(const RectTransform&)      = delete;        
 
-    RectTransform(RectTransform&&) noexcept             = default;  //Moving allowed
-    RectTransform& operator=(RectTransform&&) noexcept  = default;   
+    RectTransform(RectTransform&&) noexcept             = delete;   //Moving disabled
+    RectTransform& operator=(RectTransform&&) noexcept  = delete;
 
     ~RectTransform()                                    = default;
 
@@ -102,60 +182,53 @@ public:
 
     void draw(SDL_Renderer* renderer) const;
 
+
+   
+    template<typename T, typename... Args>
+    requires std::derived_from<T, Behaviour>
+    T* add_behaviour(Args&&... args)
+    {
+        /*auto behaviour = std::make_unique<T>(this, std::forward<Args>(args)...);
+        T* ptr = behaviour.get();
+        m_behaviours.push_back(std::move(behaviour));
+        return ptr;*/
+
+        T* behaviour = new T(this, std::forward<Args>(args)...);
+        m_behaviours.push_back(behaviour);
+        return behaviour;
+    }
+
     template<typename T>
-    T* get_behaviour();
+    requires std::derived_from<T, Behaviour>
+    void add_behaviour(T* behaviour)
+    {
+        m_behaviours.emplace_back(behaviour);
+    }
+
+    template<typename T>
+    T* get_behaviour()
+    {
+        /*
+        If you switched to:
+        std::vector<std::unique_ptr<Behaviour>>
+        Then your template must use:
+        b.get()
+        correct:
+        if (auto casted = dynamic_cast<T*>(notCasted.get()))
+        */
+
+        for (const auto& notCasted : m_behaviours)
+        {
+            if (auto casted = dynamic_cast<T*>(notCasted))
+            {
+                return casted;
+            }
+        }
+
+        return nullptr;
+    }
+
 };
 
 //----------------------------------------------------------------------------------------------------------
 
-class Time
-{
-    static float m_deltaTime;
-
-public:
-
-    static float get_deltaTime();
-    static void set_deltaTime(float deltaTime);
-
-};
-
-//----------------------------------------------------------------------------------------------------------
-
-class Behaviour
-{
-    RectTransform* m_transform;
-
-public:
-
-    Behaviour() = delete;
-    Behaviour(RectTransform* transform);
-
-
-    RectTransform* get_transform();
-
-
-    virtual void update() = 0;
-};
-
-//----------------------------------------------------------------------------------------------------------
-
-class Image : public Behaviour
-{
-    SDL_Texture* m_texture;
-
-public:
-
-    Image() = delete;
-    //Image(RectTransform* transform, SDL_Surface* surface);
-    Image(RectTransform* transform, SDL_Texture* texture);
-
-
-    SDL_Texture* get_texture();
-
-
-    void update() override;
-
-    void update(SDL_Renderer* renderer);
-};
-
-//----------------------------------------------------------------------------------------------------------

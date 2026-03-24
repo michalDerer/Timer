@@ -47,11 +47,11 @@ set(LUA_SOURCES
     ltable.c 
     ltable.h
     ltablib.c 
-    ltests.c
-    ltests.h
+    #ltests.c   #debagovanie
+    #ltests.h
     ltm.c
     ltm.h
-    lua.c
+    #lua.c      #interpreter
     lua.h
     lua.hpp
     luaconf.h
@@ -63,7 +63,8 @@ set(LUA_SOURCES
     lvm.h
     lzio.c
     lzio.h
-    onelua.c)
+    #onelua.c   #all in one
+)
 
 #prida static library subprojekt do TimerSolution
 add_library(lua STATIC ${LUA_SOURCES}) 
@@ -72,8 +73,8 @@ add_library(lua STATIC ${LUA_SOURCES})
 #lua je c kod treba nejakym sposobom zaistit, moznost
 #set_target_properties(lua PROPERTIES INKER_LANGUAGE C)
 
-#generujem lua static library potrebujem pridat preprocesor define MAKE_LIB
-target_compile_definitions(lua PRIVATE MAKE_LIB)
+#preprocesor define MAKE_LIB ignoruje sposobi ze v onelua.c sa neincluduje lua.c (interpreter) a luac.c (compiler)
+#target_compile_definitions(lua PRIVATE MAKE_LIB)
 
 #headre su v rovnakej zlozke ako sources, samotny projekt preto nepotrebuje include pridavat, 
 #ale ostatne likovane projekty na tento budu mat tymto prikazom k dispozicii headre.

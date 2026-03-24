@@ -349,3 +349,13 @@ void Image::calculateAspRect(SDL_FRect* aspRect)
         aspRect->h = aspRect->w / m_textureAsp;
     }
 }
+
+
+int l_sin(lua_State* L)
+{
+    //double d = lua_tonumber(L, 1);  /* get argument */
+    double d = luaL_checknumber(L, 1);
+    lua_pushnumber(L, sin(d));  /* push result */
+
+    return 1;  /* number of results */
+}

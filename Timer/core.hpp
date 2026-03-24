@@ -4,12 +4,7 @@
 
 #include "SDL3/SDL.h"
 
-//extern "C"
-//{
-//#include "lua.h"
-//#include "lauxlib.h"
-//#include "lualib.h"
-//}
+#include "lua.hpp"
 
 
 
@@ -140,7 +135,6 @@ private:
 };
 
 //----------------------------------------------------------------------------------------------------------
-
 
 class RectTransform
 {
@@ -274,43 +268,52 @@ public:
 
 };
 
-struct LRectTransform
+struct LuaRectTransform
 {
     RectTransform* obj;
 };
 
-//extern "C" int LRectTransform_createInstance(lua_State* L)
-//{
-//    int v = luaL_checkinteger(L, 1); // argument from Lua
-//
-//    //Allocate userdata
-//    LRectTransform* ud = (LRectTransform*)lua_newuserdata(L, sizeof(LRectTransform));
-//
-//    // Create C++ object
-//    ud->obj = new RectTransform();
-//
-//    //Set metatable
-//    luaL_getmetatable(L, "LRectTransform_meta");
-//    lua_setmetatable(L, -2);
-//
-//    // Return userdata to Lua
-//    return 1;
-//}
-//
-//int aa_gc(lua_State* L) {
-//    AAUserdata* ud = (AAUserdata*)luaL_checkudata(L, 1, "AA_meta");
-//    delete ud->obj;
-//    return 0;
-//}
-//
-//void register_AA(lua_State* L) {
-//    luaL_newmetatable(L, "AA_meta");
-//
-//    lua_pushcfunction(L, aa_gc);
-//    lua_setfield(L, -2, "__gc");
-//
-//    lua_pop(L, 1); // pop metatable
-//}
+extern "C"
+{
+    static int LuaRectTransform_createInstance(lua_State* L);
+    //{
+    //    int v = luaL_checkinteger(L, 1); // argument from Lua
+
+    //    //Allocate userdata
+    //    LRectTransform* ud = (LRectTransform*)lua_newuserdata(L, sizeof(LRectTransform));
+
+    //    // Create C++ object
+    //    ud->obj = new RectTransform();
+
+    //    //Set metatable
+    //    luaL_getmetatable(L, "LRectTransform_meta");
+    //    lua_setmetatable(L, -2);
+
+    //    // Return userdata to Lua
+    //    return 1;
+    //}
+
+    static int LuaRectTransform_gc(lua_State* L);
+    // {
+    //    AAUserdata* ud = (AAUserdata*)luaL_checkudata(L, 1, "AA_meta");
+    //    delete ud->obj;
+    //    return 0;
+    //}
+
+    static void register_LuaRectTransform(lua_State* L);
+    // {
+    //    luaL_newmetatable(L, "AA_meta");
+    //
+    //    lua_pushcfunction(L, aa_gc);
+    //    lua_setfield(L, -2, "__gc");
+    //
+    //    lua_pop(L, 1); // pop metatable
+    //}
+
+
+    int l_sin(lua_State* L);
+
+}
 
 //----------------------------------------------------------------------------------------------------------
 

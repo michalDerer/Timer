@@ -2,7 +2,8 @@ set(TIMER_SOURCES
     "main.cpp"
     "core.cpp"
     "core.hpp"
-    "luaCode.cpp")
+    "luaCode.cpp"
+    "Script.lua")
 
 add_executable(Timer ${TIMER_SOURCES})
 
@@ -26,18 +27,28 @@ target_link_libraries(Timer PRIVATE lua SDL3::SDL3 SDL3_image::SDL3_image)
 
 
 add_custom_command(TARGET Timer POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different #or command: copy 
-        ${CMAKE_CURRENT_SOURCE_DIR}/Script.lua
-        #${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
-        $<TARGET_FILE_DIR:Timer>
-)
 
-add_custom_command(TARGET Timer POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_if_different #or command: copy 
         ${CMAKE_CURRENT_SOURCE_DIR}/pika.png
-        #${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
         $<TARGET_FILE_DIR:Timer>
+
+    COMMAND ${CMAKE_COMMAND} -E make_directory
+        $<TARGET_FILE_DIR:Timer>/scripts
+
+    COMMAND ${CMAKE_COMMAND} -E copy #or command: copy_if_different 
+        ${CMAKE_CURRENT_SOURCE_DIR}/Script.lua
+        $<TARGET_FILE_DIR:Timer>/scripts
 )
+
+
+#add_custom_command(TARGET Timer POST_BUILD
+
+#    COMMAND ${CMAKE_COMMAND} -E copy_if_different #or command: copy 
+#        ${CMAKE_CURRENT_SOURCE_DIR}/pika.png
+#        #${CMAKE_RUNTIME_OUTPUT_DIRECTORY}
+#        $<TARGET_FILE_DIR:Timer>
+#)
+
 
 #CMAKE_SOURCE_DIR → top-level source folder (root of the project)
 #CMAKE_BINARY_DIR → top-level build folder

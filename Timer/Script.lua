@@ -1,5 +1,9 @@
-a = 7  + 11 + math.sin(23.7)
+s = math.sin(23.7)
+print("print from lua: " .. s)
+a = 7 + 11 + s
 a = a +100
+
+print("print from lua: " .. a)
 
 --PlayerTitle = "Squire"
 --PlayerName = "Pepa"

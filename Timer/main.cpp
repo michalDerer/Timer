@@ -7,12 +7,6 @@
 #include "SDL3/SDL.h"
 #include "SDL3_image/SDL_image.h"
 
-//extern "C"
-//{
-//#include "lua.h"
-//#include "lualib.h"
-//#include "lauxlib.h"
-//}
 #include "lua.hpp"
 
 #include "core.hpp"
@@ -22,17 +16,17 @@
 //------------------------------------------------------------------------------------------------------------
 
 
-const char*     pathToExe = NULL;
+const char*     pathExe = NULL;
 
 SDL_Window*     window = NULL;
 SDL_FRect       windowRect{};
 SDL_Renderer*   renderer = NULL;
 
-const char*     pathPikachu = "/pika.png";
+const char*     pathPikachu = "pika.png";
 SDL_Texture*    texturePikachu = NULL;
 
 lua_State*      L = NULL;
-const char*     pathScripts = "/scripts";
+const char*     pathScriptsDir = "scripts";
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -40,11 +34,11 @@ const char*     pathScripts = "/scripts";
 
 static int initPathToExe()
 {
-    pathToExe = SDL_GetBasePath();
+    pathExe = SDL_GetBasePath();
 
-    if (pathToExe)
+    if (pathExe)
     {
-        printf("SDL_GetBasePath: %s\n", pathToExe);
+        printf("pathExe: %s\n", pathExe);
 
         return 0;
     }
@@ -103,14 +97,15 @@ static int createWindow(/*SDL_Window** window, SDL_Renderer** renderer*/)
 
 static int loadAssets(/*const char* pathToExe, SDL_Renderer* renderer, SDL_Texture** texturePikachu*/)
 {
-    if (pathToExe == NULL)
+    if (pathExe == NULL)
     {
-        SDL_Log("pathToExe is null");
+        SDL_Log("pathExe is null");
 
         return 1;
     }
 
-    SDL_Surface* surface = IMG_Load(std::string(pathToExe).append(pathPikachu).c_str());
+    printf("pathPikachuFull: %s\n", std::string(pathExe).append(pathPikachu).c_str());
+    SDL_Surface* surface = IMG_Load(std::string(pathExe).append(pathPikachu).c_str());
    
     if (!surface)
     {
@@ -141,27 +136,58 @@ static int executeLuaScripts()
     L = luaL_newstate();
     //luaL_openlibs(L);
 
+    //luaopen_base(L);
+    //lua_setglobal(L, "_G");
+
+    luaL_requiref(L, "_G", luaopen_base, 1);
+    lua_pop(L, 1);
+
+    luaL_requiref(L, "math", luaopen_math, 1);
+    lua_pop(L, 1);
+
     //naplnit lua state Timer API metodami
 
-    //vykonat lua skripty
-
-    //if (luaL_dostring(L, "lua_Code") != LUA_OK)
-    //{
-    //   printf("Error: %s\n", lua_tostring(L, -1));
-    //   return 1;
-    //}
-
-    //if (luaL_dofile(L, "") != LUA_OK)
-    //{
-    //    printf("Error: %s\n", lua_tostring(L, -1));
-    //
-    //    return 1;
-    //}
+    lua_pushcfunction(L, l_sin);
+    lua_setglobal(L, "mysin");
 
 
-    
+    //najst a vykonat lua skripty
 
-    return 0;
+    std::string pathScriptsDirFull{pathExe};
+    pathScriptsDirFull.append(pathScriptsDir);
+    printf("pathScriptsDirFull: %s\n", pathScriptsDirFull.c_str());
+
+    std::filesystem::path p{pathScriptsDirFull};
+
+    if (!std::filesystem::exists(p) || !std::filesystem::is_directory(p))
+    {
+        printf("pathScriptsDirFull je nevalidna\n");
+
+        return 1;
+    }
+
+    for (const auto& entry : std::filesystem::directory_iterator(p))
+    {
+        if (entry.is_regular_file() && entry.path().extension() == ".lua")
+        {
+            printf("Executing script: %s\n", entry.path().string().c_str());
+
+            //if (luaL_dostring(L, "lua_Code") != LUA_OK)
+            //{
+            //   printf("Error: %s\n", lua_tostring(L, -1));
+            //   return 1;
+            //}
+
+            if (luaL_dofile(L, entry.path().string().c_str()) != LUA_OK)
+            {
+                printf("Error: %s\n", lua_tostring(L, -1));
+                    
+                return 1;
+            }
+        }
+    }
+
+    return 0; 
 }
 
 

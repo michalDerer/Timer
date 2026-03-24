@@ -15,8 +15,10 @@
 
 
 const char* pathToExe = NULL;
+
 SDL_Window* window = NULL;
 SDL_Renderer* renderer = NULL;
+SDL_FRect windowRect{};
 
 SDL_Texture* texturePikachu = NULL;
 
@@ -24,26 +26,7 @@ SDL_Texture* texturePikachu = NULL;
 //------------------------------------------------------------------------------------------------------------
 
 
-void calculateRect(float texAsp, float winW, float winH, SDL_FRect& rect)
-{
-    if (winH * texAsp <= winW)
-    {
-        rect.w = winH * texAsp;
-        rect.h = winH;
-        rect.x = (winW / 2.0f) - (rect.w / 2.0f);
-        rect.y = 0;
-    }
-    else
-    {
-        rect.w = winW;
-        rect.h = winW / texAsp;
-        rect.x = 0;
-        rect.y = (winH / 2.0f) - (rect.h / 2.0f);
-    }
-}
-
-
-void initPathToExe(int& argc, char**& argv)
+static void initPathToExe(int& argc, char**& argv)
 {
     printf("argc: %i\n", argc);
 
@@ -58,7 +41,7 @@ void initPathToExe(int& argc, char**& argv)
 }
 
 
-int createWindow(SDL_Window** window, SDL_Renderer** renderer)
+static int createWindow(/*SDL_Window** window, SDL_Renderer** renderer*/)
 {
     //SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
 
@@ -77,7 +60,7 @@ int createWindow(SDL_Window** window, SDL_Renderer** renderer)
         "Timer",
         800, 600,
         SDL_WINDOW_RESIZABLE,
-        window, renderer))
+        &window, &renderer))
     {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window or renderer or both %s", SDL_GetError());
 
@@ -102,7 +85,7 @@ int createWindow(SDL_Window** window, SDL_Renderer** renderer)
 }
 
 
-int loadAssets(const char* pathToExe, SDL_Renderer* renderer, SDL_Texture** texturePikachu)
+static int loadAssets(/*const char* pathToExe, SDL_Renderer* renderer, SDL_Texture** texturePikachu*/)
 {
     if (pathToExe == NULL)
     {
@@ -120,11 +103,11 @@ int loadAssets(const char* pathToExe, SDL_Renderer* renderer, SDL_Texture** text
         return 1;
     }
 
-    *texturePikachu = SDL_CreateTextureFromSurface(renderer, surface);
+    texturePikachu = SDL_CreateTextureFromSurface(renderer, surface);
     SDL_DestroySurface(surface);
     surface = NULL;
 
-    if (!*texturePikachu)
+    if (!texturePikachu)
     {
         SDL_Log("Failed to create texture: %s", SDL_GetError());
 
@@ -134,7 +117,7 @@ int loadAssets(const char* pathToExe, SDL_Renderer* renderer, SDL_Texture** text
     return 0;
 }
 
-void freeAll()
+static void freeAll()
 {
     //nemozem uvolnit pathToExe, lebo sa uvolnuje v SDL_Quit()
     /*if (pathToExe)
@@ -164,6 +147,7 @@ void freeAll()
     SDL_Quit();
 }
 
+
 //------------------------------------------------------------------------------------------------------------
 
 
@@ -172,32 +156,28 @@ int main(int argc, char** argv)
     
     initPathToExe(argc, argv);
 
-    int createWindowResult = createWindow(&window, &renderer);
+    int createWindowResult = createWindow(/*&window, &renderer*/);
     if (createWindowResult != 0)
     {
         freeAll();
         return createWindowResult;
     }
 
-    int loadAssetsResult = loadAssets(pathToExe, renderer, &texturePikachu);
+    int loadAssetsResult = loadAssets(/*pathToExe, renderer, &texturePikachu */);
     if (loadAssetsResult != 0)
     {
         freeAll();
         return createWindowResult;
     }
 
-    
-
-    //float texW, texH;
-    //SDL_GetTextureSize(texturePikachu, &texW, &texH);
-    
+   
     int winW, winH;
     SDL_GetWindowSize(window, &winW, &winH);
-
-    SDL_FRect windowRect {.x = 0, .y = 0, .w = static_cast<float>(winW), .h = static_cast<float>(winH)};
-
+    windowRect.x = 0;
+    windowRect.y = 0;
+    windowRect.w = static_cast<float>(winW);
+    windowRect.h = static_cast<float>(winH);
     
-
     RectTransform rt;
     rt.set_anchorMinX(0.1f);
     rt.set_anchorMaxX(0.9f);
@@ -217,7 +197,10 @@ int main(int argc, char** argv)
     //Image img{ &rt, texturePikachu };
     //rt.add_behaviour(&img);
 
-    rt2.add_behaviour<Image>(texturePikachu);
+    auto img = rt2.add_behaviour<Image>(texturePikachu);
+    img->preserveAspectRation = true;
+    img->alignHorizontal = ImageAlignHorizontal::CENTER;
+    img->alignVertical = ImageAlignVertical::CENTER;
 
     {
         //rt.update_rect(windowRect);
@@ -239,7 +222,7 @@ int main(int argc, char** argv)
                 cur->update_rect(cur->get_parent()->get_rect());
             }
 
-            for (int i = 0; i < cur->get_child_count(); i++)
+            for (int i = 0; i < cur->get_childCount(); i++)
             {
                 transformy.push_back(cur->get_child(i));
             }
@@ -292,7 +275,7 @@ int main(int argc, char** argv)
                             cur->update_rect(cur->get_parent()->get_rect());
                         }
 
-                        for (int i = 0; i < cur->get_child_count(); i++)
+                        for (int i = 0; i < cur->get_childCount(); i++)
                         {
                             transformy.push_back(cur->get_child(i));
                         }
@@ -321,10 +304,11 @@ int main(int argc, char** argv)
                 auto behaviourImage = cur->get_behaviour<Image>();
                 if (behaviourImage != nullptr)
                 {
-                    behaviourImage->update(renderer);
+                    //behaviourImage->update(renderer);
+                    behaviourImage->update();
                 }
 
-                for (int i = 0; i < cur->get_child_count(); i++)
+                for (int i = 0; i < cur->get_childCount(); i++)
                 {
                     transformy.push_back(cur->get_child(i));
                 }

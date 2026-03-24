@@ -19,8 +19,8 @@ RectTransform::RectTransform() :
     m_parent(NULL),
     m_children(),
     m_behaviours()
-
 {}
+
 
 
 float RectTransform::get_anchorMinX() const
@@ -120,9 +120,8 @@ void RectTransform::set_parent(RectTransform* parent)
     m_parent = parent;
 }
 
-int RectTransform::get_child_count() noexcept
-{ 
-    // return static_cast<int>(children.size());
+int RectTransform::get_childCount() noexcept
+{
     return static_cast<int>(m_children.size());
 }
 
@@ -139,12 +138,12 @@ RectTransform* RectTransform::get_child(int idx)
 }
 
 
+
 RectTransform* RectTransform::create_child()
 {
     /*
     auto child = std::make_unique<RectTransform>();
     child->parent = this;
-
     RectTransform* rawPtr = child.get();
     children.push_back(std::move(child));
 
@@ -154,6 +153,7 @@ RectTransform* RectTransform::create_child()
     auto child = new RectTransform();
     child->m_parent = this;
     m_children.push_back(child);
+
     return m_children.back();
 }
 
@@ -164,12 +164,13 @@ void RectTransform::add_child(RectTransform* child)
     m_children.push_back(child);
 }
 
-void RectTransform::remove_child(RectTransform*& child)
+void RectTransform::remove_child(RectTransform* child)
 {
-    //poposuva platne prvky dolava a necha volne prvky na konci
-    //it je koniec prvkov, ktore splnili podmienku
+    //auto it = std::remove(m_children.begin(), m_children.end(), child);
+    //m_children.erase(it, m_children.end());
+
     auto it = std::remove_if(m_children.begin(), m_children.end(),
-        [&child](RectTransform*& ptr)
+        [child](RectTransform* ptr)
         {
             return ptr == child;
         });
@@ -227,9 +228,27 @@ RectTransform* Behaviour::get_transform()
 
 //Image--------------------------------------------------------------------------------------------------------------
 
-Image::Image(RectTransform* transform, SDL_Texture* texture) : Behaviour(transform), m_texture(texture) 
+inline ImageAlignHorizontal operator&(ImageAlignHorizontal a, ImageAlignHorizontal b)
+{
+    return static_cast<ImageAlignHorizontal>(static_cast<unsigned int>(a) & static_cast<unsigned int>(b));
+}
+
+inline ImageAlignVertical operator&(ImageAlignVertical a, ImageAlignVertical b)
+{
+    return static_cast<ImageAlignVertical>(static_cast<unsigned int>(a) & static_cast<unsigned int>(b));
+}
+
+Image::Image(RectTransform* transform, SDL_Texture* texture) : 
+    Behaviour(transform), 
+    m_texture(texture),
+    m_textureRect(),
+    m_textureAsp(.0f),
+    preserveAspectRation(false),
+    alignHorizontal(ImageAlignHorizontal::CENTER),
+    alignVertical(ImageAlignVertical::CENTER)
 {
     if (!transform) throw std::runtime_error("arg transform is null");
+    set_texture(texture);
 }
 
 SDL_Texture* Image::get_texture()
@@ -237,24 +256,45 @@ SDL_Texture* Image::get_texture()
     return m_texture;
 }
 
+void Image::set_texture(SDL_Texture* texture)
+{
+    if (!texture)
+    {
+        m_texture = NULL;
+        m_textureRect.x = .0f;
+        m_textureRect.y = .0f;
+        m_textureRect.w = .0f;
+        m_textureRect.h = .0f;
+        m_textureAsp = .0f;
+    }
+    else
+    {
+        m_texture = texture;
+        m_textureRect.x = .0f;
+        m_textureRect.y = .0f;
+        m_textureRect.w = static_cast<float>(m_texture->w);
+        m_textureRect.h = static_cast<float>(m_texture->h);
+        m_textureAsp = m_textureRect.w / m_textureRect.h;
+    }
+}
+
 void Image::update()
 {
-
+    Image::update(renderer);
 };
 
 void Image::update(SDL_Renderer* renderer)
 {
     SDL_FRect dRect = get_transform()->get_rect();
 
+    if (preserveAspectRation)
+    {
+        calculateAspRect(&dRect);
+    }
+
     if (m_texture)
     {
-        SDL_FRect sRect
-        {
-            .w = static_cast<float>(m_texture->w),
-            .h = static_cast<float>(m_texture->h)
-        };
-
-        SDL_RenderTexture(renderer, m_texture, &sRect, &dRect);
+        SDL_RenderTexture(renderer, m_texture, &m_textureRect, &dRect);
     }
     else
     {
@@ -262,5 +302,50 @@ void Image::update(SDL_Renderer* renderer)
         SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
         //SDL_GetRenderDrawColor()
         SDL_RenderFillRect(renderer, &dRect);
+    }
+}
+
+void Image::calculateAspRect(SDL_FRect* aspRect)
+{
+    if (aspRect->h * m_textureAsp <= aspRect->w)
+    {
+        
+        if ((alignHorizontal & ImageAlignHorizontal::CENTER) == ImageAlignHorizontal::CENTER)
+        {
+            aspRect->x += aspRect->w / 2.f - (aspRect->h * m_textureAsp) / 2.f;
+            //printf("ImageAlign::CENTER_HORIZONTAL\n");
+        }
+        //else if ((alignHorizontal & ImageAlignHorizontal::LEFT) == ImageAlignHorizontal::LEFT)
+        //{
+            //netreba ziadny vypocet
+            //printf("ImageAlign::LEFT\n");
+        //}
+        else if ((alignHorizontal & ImageAlignHorizontal::RIGHT) == ImageAlignHorizontal::RIGHT)
+        {
+            aspRect->x += aspRect->w - aspRect->h * m_textureAsp;
+            //printf("ImageAlign::RIGHT\n");
+        }
+
+        aspRect->w = aspRect->h * m_textureAsp;
+    }
+    else
+    {
+        if ((alignVertical & ImageAlignVertical::CENTER) == ImageAlignVertical::CENTER)
+        {
+            aspRect->y += aspRect->h / 2.f - (aspRect->w * m_textureAsp) / 2.f;
+            //printf("ImageAlign::CENTER_VERTICAL\n");
+        }
+        //else if ((alignVertical & ImageAlignVertical::TOP) == ImageAlignVertical::TOP)
+        //{
+            //netreba ziadny vypocet
+            //printf("ImageAlign::TOP\n");
+        //}
+        else if ((alignVertical & ImageAlignVertical::BOTTOM) == ImageAlignVertical::BOTTOM)
+        {
+            aspRect->y += aspRect->h - aspRect->w * m_textureAsp;
+            //printf("ImageAlign::BOTTOM\n");
+        }
+
+        aspRect->h = aspRect->w / m_textureAsp;
     }
 }

@@ -1,7 +1,8 @@
 set(TIMER_SOURCES
     "main.cpp"
     "core.cpp"
-    "core.hpp")
+    "core.hpp"
+    "luaCode.cpp")
 
 add_executable(Timer ${TIMER_SOURCES})
 

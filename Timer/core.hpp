@@ -4,9 +4,24 @@
 
 #include "SDL3/SDL.h"
 
+extern "C"
+{
+#include "lua.h"
+#include "lauxlib.h"
+#include "lualib.h"
+}
 
 
-class RectTransform;    //forward declaration tuna na zaciatku rozbija circular dependency medzi Behaviour a RectTransform 
+
+//----------------------------------------------------------------------------------------------------------
+//FPRWARD DECLARATIONS
+
+class RectTransform;    
+
+//----------------------------------------------------------------------------------------------------------
+//GLOBAL WARIABLES DECLARATIONS
+
+extern SDL_Renderer* renderer;
 
 //----------------------------------------------------------------------------------------------------------
 
@@ -35,7 +50,7 @@ class Behaviour
 
 public:
 
-    Behaviour() = delete;
+    Behaviour()                                         = delete;   //default constructor
     Behaviour(RectTransform* transform);
 
     Behaviour(const Behaviour& other)                   = delete;   //copy constructor
@@ -47,7 +62,9 @@ public:
     virtual ~Behaviour() = default;
 
 
+
     RectTransform* get_transform();
+
 
 
     virtual void update() = 0;
@@ -55,13 +72,49 @@ public:
 
 //----------------------------------------------------------------------------------------------------------
 
+enum class ImageAlignHorizontal : unsigned int
+{
+    CENTER = 1 << 0,
+    LEFT = 1 << 1,
+    RIGHT = 1 << 2
+};
+
+//inline ImageAlignHorizontal operator|(ImageAlignHorizontal a, ImageAlignHorizontal b);
+inline ImageAlignHorizontal operator&(ImageAlignHorizontal a, ImageAlignHorizontal b);
+
+enum class ImageAlignVertical : unsigned int
+{
+    CENTER = 1 << 0,
+    TOP = 1 << 1,
+    BOTTOM = 1 << 2
+};
+
+//inline ImageAlignVertical operator|(ImageAlignVertical a, ImageAlignVertical b);
+inline ImageAlignVertical operator&(ImageAlignVertical a, ImageAlignVertical b);
+
+//----------------------------------------------------------------------------------------------------------
+
 class Image : public Behaviour
 {
     SDL_Texture* m_texture;
+    SDL_FRect m_textureRect;
+    float m_textureAsp;
 
 public:
 
-    Image()                                                 = delete;
+    bool preserveAspectRation = false;
+    /// <summary>
+    /// Pouziva len jednu z moznych hodnot enumu.
+    /// </summary>
+    ImageAlignHorizontal alignHorizontal;
+    /// <summary>
+    /// Pouziva len jednu z moznych hodnot enumu.
+    /// </summary>
+    ImageAlignVertical alignVertical;
+
+public:
+
+    Image()                                                 = delete;   //default constructor
     Image(RectTransform* transform, SDL_Texture* texture);
 
     Image(const Image& other)                               = delete;   //copy constructor
@@ -73,11 +126,17 @@ public:
     ~Image() override                                       = default;
 
 
+
     SDL_Texture* get_texture();
+    void set_texture(SDL_Texture* texture);
+
 
     void update() override;
-
     void update(SDL_Renderer* renderer);
+
+private:
+
+    void calculateAspRect(SDL_FRect* rect);
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -85,8 +144,6 @@ public:
 
 class RectTransform
 {
-
-private:
 
     float m_anchorMinX;   //relativny posun zlava     rozsah 0f - 1f
     float m_anchorMinY;   //relativny posun zhora     rozsah 0f - 1f
@@ -111,11 +168,6 @@ private:
     
 public:
     
-    // -----------------------------
-    // Constructors, Destructors
-    // -----------------------------
-
-
     RectTransform();                                    //= default;
 
     RectTransform(const RectTransform&)                 = delete;   //Copying disabled
@@ -126,10 +178,6 @@ public:
 
     ~RectTransform()                                    = default;
 
-    
-    // -----------------------------
-    // Getters
-    // -----------------------------
 
 
     float get_anchorMinX() const;   
@@ -165,18 +213,14 @@ public:
     RectTransform* get_parent();
     void set_parent(RectTransform* parent);
 
-    int get_child_count() noexcept;
+    int get_childCount() noexcept;
     RectTransform* get_child(int idx);
 
-
-    // -----------------------------
-    // Methods
-    // -----------------------------
 
 
     RectTransform* create_child();
     void add_child(RectTransform* child);
-    void remove_child(RectTransform*& child);
+    void remove_child(RectTransform* child);
 
     void update_rect(SDL_FRect rect);
 
@@ -229,6 +273,44 @@ public:
     }
 
 };
+
+struct LRectTransform
+{
+    RectTransform* obj;
+};
+
+extern "C" int LRectTransform_createInstance(lua_State* L)
+{
+    int v = luaL_checkinteger(L, 1); // argument from Lua
+
+    //Allocate userdata
+    LRectTransform* ud = (LRectTransform*)lua_newuserdata(L, sizeof(LRectTransform));
+
+    // Create C++ object
+    ud->obj = new RectTransform();
+
+    //Set metatable
+    luaL_getmetatable(L, "LRectTransform_meta");
+    lua_setmetatable(L, -2);
+
+    // Return userdata to Lua
+    return 1;
+}
+
+int aa_gc(lua_State* L) {
+    AAUserdata* ud = (AAUserdata*)luaL_checkudata(L, 1, "AA_meta");
+    delete ud->obj;
+    return 0;
+}
+
+void register_AA(lua_State* L) {
+    luaL_newmetatable(L, "AA_meta");
+
+    lua_pushcfunction(L, aa_gc);
+    lua_setfield(L, -2, "__gc");
+
+    lua_pop(L, 1); // pop metatable
+}
 
 //----------------------------------------------------------------------------------------------------------
 

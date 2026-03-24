@@ -148,4 +148,6 @@ void louaCode()
         }
     }
     */
+
+    lua_close(L);
 }

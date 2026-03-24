@@ -1,11 +1,19 @@
 
-#include <iostream>
+//#include <iostream>
 #include <cstdio>
 #include <filesystem>
 #include <string>
 
 #include "SDL3/SDL.h"
 #include "SDL3_image/SDL_image.h"
+
+//extern "C"
+//{
+//#include "lua.h"
+//#include "lualib.h"
+//#include "lauxlib.h"
+//}
+#include "lua.hpp"
 
 #include "core.hpp"
 
@@ -14,30 +22,38 @@
 //------------------------------------------------------------------------------------------------------------
 
 
-const char* pathToExe = NULL;
+const char*     pathToExe = NULL;
 
-SDL_Window* window = NULL;
-SDL_Renderer* renderer = NULL;
-SDL_FRect windowRect{};
+SDL_Window*     window = NULL;
+SDL_FRect       windowRect{};
+SDL_Renderer*   renderer = NULL;
 
-SDL_Texture* texturePikachu = NULL;
+const char*     pathPikachu = "/pika.png";
+SDL_Texture*    texturePikachu = NULL;
+
+lua_State*      L = NULL;
+const char*     pathScripts = "/scripts";
 
 
 //------------------------------------------------------------------------------------------------------------
 
 
-static void initPathToExe(int& argc, char**& argv)
+static int initPathToExe()
 {
-    printf("argc: %i\n", argc);
-
-    for (int i = 0; i < argc; i++)
-    {
-        std::cout << "argv["<< i <<"]: " << argv[i] << "\n";
-    }
-
     pathToExe = SDL_GetBasePath();
-    std::cout << "SDL_GetBasePath: " << pathToExe << "\n";
 
+    if (pathToExe)
+    {
+        printf("SDL_GetBasePath: %s\n", pathToExe);
+
+        return 0;
+    }
+    else
+    {
+        SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SDL_GetBasePath failed: %s", SDL_GetError());
+
+        return 1;
+    }
 }
 
 
@@ -94,7 +110,7 @@ static int loadAssets(/*const char* pathToExe, SDL_Renderer* renderer, SDL_Textu
         return 1;
     }
 
-    SDL_Surface* surface = IMG_Load(std::string(pathToExe).append("/pika.png").c_str());
+    SDL_Surface* surface = IMG_Load(std::string(pathToExe).append(pathPikachu).c_str());
    
     if (!surface)
     {
@@ -117,8 +133,45 @@ static int loadAssets(/*const char* pathToExe, SDL_Renderer* renderer, SDL_Textu
     return 0;
 }
 
+
+static int executeLuaScripts()
+{
+    //vytvorit lua state
+
+    L = luaL_newstate();
+    //luaL_openlibs(L);
+
+    //naplnit lua state Timer API metodami
+
+    //vykonat lua skripty
+
+    //if (luaL_dostring(L, "lua_Code") != LUA_OK)
+    //{
+    //   printf("Error: %s\n", lua_tostring(L, -1));
+    //   return 1;
+    //}
+
+    //if (luaL_dofile(L, "") != LUA_OK)
+    //{
+    //    printf("Error: %s\n", lua_tostring(L, -1));
+    //
+    //    return 1;
+    //}
+
+
+    
+
+    return 0;
+}
+
+
 static void freeAll()
 {
+    if (L)
+    {
+        lua_close(L);
+    }
+
     //nemozem uvolnit pathToExe, lebo sa uvolnuje v SDL_Quit()
     /*if (pathToExe)
     {
@@ -148,29 +201,60 @@ static void freeAll()
 }
 
 
+typedef int (*Method)(void);
+
+static int freeIfNotReturn0(Method method)
+//static int freeIfNotReturn0(int(*method)(void))
+{
+    int result = method();
+    if (result != 0)
+    {
+        freeAll();
+    }
+
+    return result;
+}
+
+
 //------------------------------------------------------------------------------------------------------------
 
 
 int main(int argc, char** argv)
 {
     
-    initPathToExe(argc, argv);
+    //int initPathToExeResult = initPathToExe();
+    //if (initPathToExeResult != 0)
+    //{
+    //    freeAll();
+    //    return initPathToExeResult;
+    //}
+    if (auto result = freeIfNotReturn0(initPathToExe)) return result;
+    
+    //int createWindowResult = createWindow();
+    //if (createWindowResult != 0)
+    //{
+    //    freeAll();
+    //    return createWindowResult;
+    //}
+    if (auto result = freeIfNotReturn0(createWindow)) return result;
 
-    int createWindowResult = createWindow(/*&window, &renderer*/);
-    if (createWindowResult != 0)
-    {
-        freeAll();
-        return createWindowResult;
-    }
+    //int loadAssetsResult = loadAssets();
+    //if (loadAssetsResult != 0)
+    //{
+    //    freeAll();
+    //    return loadAssetsResult;
+    //}
+    if (auto result = freeIfNotReturn0(loadAssets)) return result;
 
-    int loadAssetsResult = loadAssets(/*pathToExe, renderer, &texturePikachu */);
-    if (loadAssetsResult != 0)
-    {
-        freeAll();
-        return createWindowResult;
-    }
+    //int executeLuaScriptsResult = executeLuaScripts();
+    //if (executeLuaScriptsResult != 0)
+    //{
+    //    freeAll();
+    //    return executeLuaScriptsResult;
+    //}
+    if (auto result = freeIfNotReturn0(executeLuaScripts)) return result;
 
-   
+
     int winW, winH;
     SDL_GetWindowSize(window, &winW, &winH);
     windowRect.x = 0;
@@ -201,6 +285,7 @@ int main(int argc, char** argv)
     img->preserveAspectRation = true;
     img->alignHorizontal = ImageAlignHorizontal::CENTER;
     img->alignVertical = ImageAlignVertical::CENTER;
+
 
     {
         //rt.update_rect(windowRect);

@@ -53,6 +53,7 @@ set(LUA_SOURCES
     ltm.h
     lua.c
     lua.h
+    lua.hpp
     luaconf.h
     lualib.h
     lundump.c 
@@ -71,6 +72,8 @@ add_library(lua STATIC ${LUA_SOURCES})
 #lua je c kod treba nejakym sposobom zaistit, moznost
 #set_target_properties(lua PROPERTIES INKER_LANGUAGE C)
 
+#generujem lua static library potrebujem pridat preprocesor define MAKE_LIB
+target_compile_definitions(lua PRIVATE MAKE_LIB)
 
 #headre su v rovnakej zlozke ako sources, samotny projekt preto nepotrebuje include pridavat, 
 #ale ostatne likovane projekty na tento budu mat tymto prikazom k dispozicii headre.

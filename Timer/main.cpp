@@ -19,8 +19,10 @@
 const char*     pathExe = NULL;
 
 SDL_Window*     window = NULL;
-SDL_FRect       windowRect{};
 SDL_Renderer*   renderer = NULL;
+
+SDL_FRect       windowRect{};
+RectTransform*  rootRectTransform = NULL;
 
 const char*     pathPikachu = "pika.png";
 SDL_Texture*    texturePikachu = NULL;
@@ -28,7 +30,7 @@ SDL_Texture*    texturePikachu = NULL;
 lua_State*      L = NULL;
 const char*     pathScriptsDir = "scripts";
 
-Scene scene;
+//Scene scene;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -133,10 +135,10 @@ static int loadAssets(/*const char* pathToExe, SDL_Renderer* renderer, SDL_Textu
 
 static int executeLuaScripts()
 {
-    //vytvorit lua state
-
-    L = luaL_newstate();
+    L = luaL_newstate(); 
     //luaL_openlibs(L);
+
+    //--------------------
 
     //luaopen_base(L);
     //lua_setglobal(L, "_G");
@@ -146,14 +148,15 @@ static int executeLuaScripts()
 
     luaL_requiref(L, "math", luaopen_math, 1);
     lua_pop(L, 1);
+    
+    //--------------------
 
-    //naplnit lua state Timer API metodami
+    /*lua_pushcfunction(L, l_sin);
+    lua_setglobal(L, "mysin");*/
 
-    lua_pushcfunction(L, l_sin);
-    lua_setglobal(L, "mysin");
+    register_API(L, (void**)&rootRectTransform);
 
-
-    //najst a vykonat lua skripty
+    //--------------------
 
     std::string pathScriptsDirFull{pathExe};
     pathScriptsDirFull.append(pathScriptsDir);
@@ -290,36 +293,41 @@ int main(int argc, char** argv)
     windowRect.w = static_cast<float>(winW);
     windowRect.h = static_cast<float>(winH);
     
-    RectTransform rt;
-    rt.set_anchorMinX(0.1f);
-    rt.set_anchorMaxX(0.9f);
-    rt.set_anchorMinY(0.1f);
-    rt.set_anchorMaxY(0.9f);
-    rt.set_right(1.f);
-    rt.set_bottom(1.f);
-    RectTransform rt2;
-    rt2.set_anchorMinX(0.1f);
-    rt2.set_anchorMaxX(0.7f);
-    rt2.set_anchorMinY(0.1f);
-    rt2.set_anchorMaxY(0.9f);
-    rt2.set_right(1.f);
-    rt2.set_bottom(1.f);
-    rt.add_child(&rt2);
+    //RectTransform rt;
+    //rt.set_anchorMinX(0.1f);
+    //rt.set_anchorMaxX(0.9f);
+    //rt.set_anchorMinY(0.1f);
+    //rt.set_anchorMaxY(0.9f);
+    //rt.set_right(1.f);
+    //rt.set_bottom(1.f);
+    //RectTransform rt2;
+    //rt2.set_anchorMinX(0.1f);
+    //rt2.set_anchorMaxX(0.7f);
+    //rt2.set_anchorMinY(0.1f);
+    //rt2.set_anchorMaxY(0.9f);
+    //rt2.set_right(1.f);
+    //rt2.set_bottom(1.f);
+    //rt.add_child(&rt2);
+
+    //rootRectTransform = &rt;
 
     //Image img{ &rt, texturePikachu };
     //rt.add_behaviour(&img);
 
-    auto img = rt2.add_behaviour<Image>(texturePikachu);
-    img->preserveAspectRation = true;
-    img->alignHorizontal = ImageAlignHorizontal::CENTER;
-    img->alignVertical = ImageAlignVertical::CENTER;
+    //auto img = rt2.add_behaviour<Image>(texturePikachu);
+    //img->preserveAspectRation = true;
+    //img->alignHorizontal = ImageAlignHorizontal::CENTER;
+    //img->alignVertical = ImageAlignVertical::CENTER;
+
+
+    if (rootRectTransform->get_parent() != NULL)
+    {
+        throw std::runtime_error("premenna rootRectTransform.get_parent() nieje NULL");
+    }
 
 
     {
-        //rt.update_rect(windowRect);
-        //rt2->update_rect(rt.get_rect());
-
-        std::vector<RectTransform*> transformy{ &rt };
+        std::vector<RectTransform*> transformy{ rootRectTransform };
 
         while (!transformy.empty())
         {
@@ -369,10 +377,7 @@ int main(int argc, char** argv)
                 windowRect.h = static_cast<float>(winH);
 
                 {
-                    //rt.update_rect(windowRect);
-                    //rt2.update_rect(rt.get_rect());
-
-                    std::vector<RectTransform*> transformy{ &rt };
+                    std::vector<RectTransform*> transformy{ rootRectTransform };
 
                     while (!transformy.empty())
                     {
@@ -402,10 +407,7 @@ int main(int argc, char** argv)
         SDL_RenderClear(renderer);
 
         {
-            //rt.draw(renderer);
-            //rt2.draw(renderer);
-            
-            std::vector<RectTransform*> transformy{&rt};
+            std::vector<RectTransform*> transformy{ rootRectTransform };
 
             while (!transformy.empty())
             {

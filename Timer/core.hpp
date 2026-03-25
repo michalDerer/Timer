@@ -11,7 +11,7 @@
 //----------------------------------------------------------------------------------------------------------
 //FPRWARD DECLARATIONS
 
-class RectTransform;    
+class RectTransform;
 
 //----------------------------------------------------------------------------------------------------------
 //GLOBAL WARIABLES DECLARATIONS
@@ -162,7 +162,7 @@ class RectTransform
     
 public:
     
-    RectTransform();                                    //= default;
+    RectTransform();
 
     RectTransform(const RectTransform&)                 = delete;   //Copying disabled
     RectTransform& operator=(const RectTransform&)      = delete;        
@@ -170,7 +170,7 @@ public:
     RectTransform(RectTransform&&) noexcept             = delete;   //Moving disabled
     RectTransform& operator=(RectTransform&&) noexcept  = delete;
 
-    ~RectTransform()                                    = default;
+    ~RectTransform();
 
 
 
@@ -272,7 +272,6 @@ public:
 
 class Scene
 {
-    Scene* m_activeScene;
 
 public:
 
@@ -280,7 +279,7 @@ public:
 
 public:
 
-    Scene();                            //= default;
+    Scene();
 
     Scene(const Scene&)                 = delete;   //Copying disabled
     Scene& operator=(const Scene&)      = delete;
@@ -289,47 +288,23 @@ public:
     Scene& operator=(Scene&&) noexcept  = delete;
 
     ~Scene() = default;
-
-
-
-    Scene* get_activeScene();
-    void set_activeScene();
 };
 
 //----------------------------------------------------------------------------------------------------------
 
 struct LuaRectTransform
 {
-    RectTransform* obj;
+    RectTransform obj{};
 };
 
-
-
 int LuaRectTransform_createInstance(lua_State* L);
-
-//registrovanie do lua state
-//lua_register(L, "LuaRectTransform_createInstance", LuaRectTransform_createInstance);
-
+int LuaRectTransform_set_parent(lua_State* L);
 int LuaRectTransform_gc(lua_State* L);
-// {
-//    AAUserdata* ud = (AAUserdata*)luaL_checkudata(L, 1, "AA_meta");
-//    delete ud->obj;
-//    return 0;
-//}
+
+int set_rootRectTransform(lua_State* L);
 
 void register_LuaRectTransform(lua_State* L);
-// {
-//    luaL_newmetatable(L, "AA_meta");
-//
-//    lua_pushcfunction(L, aa_gc);
-//    lua_setfield(L, -2, "__gc");
-//
-//    lua_pop(L, 1); // pop metatable
-//}
-
-
-
-int l_sin(lua_State* L);
+void register_API(lua_State* L, void** rootRectTransform);
 
 //----------------------------------------------------------------------------------------------------------
 

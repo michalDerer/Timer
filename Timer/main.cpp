@@ -28,6 +28,8 @@ SDL_Texture*    texturePikachu = NULL;
 lua_State*      L = NULL;
 const char*     pathScriptsDir = "scripts";
 
+Scene scene;
+
 
 //------------------------------------------------------------------------------------------------------------
 

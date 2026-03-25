@@ -39,7 +39,6 @@ float RectTransform::get_anchorMinY() const
     return m_anchorMinY;
 }
 
-
 void RectTransform::set_anchorMinY(float value)
 {
     m_anchorMinY = std::clamp(value, .0f, 1.f);
@@ -205,6 +204,10 @@ void RectTransform::draw(SDL_Renderer* renderer) const
 
 //Time---------------------------------------------------------------------------------------------------------------
 
+Scene::Scene() : content() {}
+
+//Time---------------------------------------------------------------------------------------------------------------
+
 float Time::m_deltaTime = .0f;
 
 float Time::get_deltaTime()
@@ -349,6 +352,27 @@ void Image::calculateAspRect(SDL_FRect* aspRect)
         aspRect->h = aspRect->w / m_textureAsp;
     }
 }
+
+
+int LuaRectTransform_createInstance(lua_State* L)
+{
+    int v = luaL_checkinteger(L, 1); // argument from Lua
+
+    //Allocate userdata
+    LRectTransform* ud = (LRectTransform*)lua_newuserdata(L, sizeof(LRectTransform));
+
+    // Create C++ object
+    ud->obj = new RectTransform();
+
+    //Set metatable
+    luaL_getmetatable(L, "LRectTransform_meta");
+    lua_setmetatable(L, -2);
+
+    // Return userdata to Lua
+    return 1;
+}
+
+
 
 
 int l_sin(lua_State* L)

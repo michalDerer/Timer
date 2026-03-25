@@ -268,52 +268,68 @@ public:
 
 };
 
+//----------------------------------------------------------------------------------------------------------
+
+class Scene
+{
+    Scene* m_activeScene;
+
+public:
+
+    std::vector<RectTransform*> content;
+
+public:
+
+    Scene();                            //= default;
+
+    Scene(const Scene&)                 = delete;   //Copying disabled
+    Scene& operator=(const Scene&)      = delete;
+
+    Scene(Scene&&) noexcept             = delete;   //Moving disabled
+    Scene& operator=(Scene&&) noexcept  = delete;
+
+    ~Scene() = default;
+
+
+
+    Scene* get_activeScene();
+    void set_activeScene();
+};
+
+//----------------------------------------------------------------------------------------------------------
+
 struct LuaRectTransform
 {
     RectTransform* obj;
 };
 
-extern "C"
-{
-    static int LuaRectTransform_createInstance(lua_State* L);
-    //{
-    //    int v = luaL_checkinteger(L, 1); // argument from Lua
-
-    //    //Allocate userdata
-    //    LRectTransform* ud = (LRectTransform*)lua_newuserdata(L, sizeof(LRectTransform));
-
-    //    // Create C++ object
-    //    ud->obj = new RectTransform();
-
-    //    //Set metatable
-    //    luaL_getmetatable(L, "LRectTransform_meta");
-    //    lua_setmetatable(L, -2);
-
-    //    // Return userdata to Lua
-    //    return 1;
-    //}
-
-    static int LuaRectTransform_gc(lua_State* L);
-    // {
-    //    AAUserdata* ud = (AAUserdata*)luaL_checkudata(L, 1, "AA_meta");
-    //    delete ud->obj;
-    //    return 0;
-    //}
-
-    static void register_LuaRectTransform(lua_State* L);
-    // {
-    //    luaL_newmetatable(L, "AA_meta");
-    //
-    //    lua_pushcfunction(L, aa_gc);
-    //    lua_setfield(L, -2, "__gc");
-    //
-    //    lua_pop(L, 1); // pop metatable
-    //}
 
 
-    int l_sin(lua_State* L);
+int LuaRectTransform_createInstance(lua_State* L);
 
-}
+//registrovanie do lua state
+//lua_register(L, "LuaRectTransform_createInstance", LuaRectTransform_createInstance);
+
+int LuaRectTransform_gc(lua_State* L);
+// {
+//    AAUserdata* ud = (AAUserdata*)luaL_checkudata(L, 1, "AA_meta");
+//    delete ud->obj;
+//    return 0;
+//}
+
+void register_LuaRectTransform(lua_State* L);
+// {
+//    luaL_newmetatable(L, "AA_meta");
+//
+//    lua_pushcfunction(L, aa_gc);
+//    lua_setfield(L, -2, "__gc");
+//
+//    lua_pop(L, 1); // pop metatable
+//}
+
+
+
+int l_sin(lua_State* L);
 
 //----------------------------------------------------------------------------------------------------------
 

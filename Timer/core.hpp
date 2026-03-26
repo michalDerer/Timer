@@ -9,7 +9,7 @@
 
 
 //----------------------------------------------------------------------------------------------------------
-//FPRWARD DECLARATIONS
+//FORWARD DECLARATIONS
 
 class RectTransform;
 
@@ -351,14 +351,15 @@ struct LuaRectTransform
     RectTransform obj{};
 };
 
-int LuaRectTransform_createInstance(lua_State* L);
-int LuaRectTransform_set_parent(lua_State* L);
+int LuaRectTransform_new(lua_State* L);
 int LuaRectTransform_gc(lua_State* L);
-
-int set_rootRectTransform(lua_State* L);
+int LuaRectTransform_set_parent(lua_State* L);
+int LuaRectTransform_set_values(lua_State* L);
 
 void register_LuaRectTransform(lua_State* L);
-void register_API(lua_State* L, void** rootRectTransform);
+
+int set_rootRectTransform(lua_State* L);
+void register_API(lua_State* L);
 
 //----------------------------------------------------------------------------------------------------------
 

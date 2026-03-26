@@ -22,7 +22,6 @@ SDL_Window*     window = NULL;
 SDL_Renderer*   renderer = NULL;
 
 SDL_FRect       windowRect{};
-RectTransform*  rootRectTransform = NULL;   //TODO: odrobit Nhradila Scene v SceneManager
 
 const char*     pathPikachu = "pika.png";
 SDL_Texture*    texturePikachu = NULL;
@@ -152,7 +151,7 @@ static int executeLuaScripts()
     /*lua_pushcfunction(L, l_sin);
     lua_setglobal(L, "mysin");*/
 
-    register_API(L, (void**)&rootRectTransform);
+    register_API(L);
 
     //--------------------
 
@@ -291,23 +290,6 @@ int main(int argc, char** argv)
     windowRect.w = static_cast<float>(winW);
     windowRect.h = static_cast<float>(winH);
     
-    //RectTransform rt;
-    //rt.set_anchorMinX(0.1f);
-    //rt.set_anchorMaxX(0.9f);
-    //rt.set_anchorMinY(0.1f);
-    //rt.set_anchorMaxY(0.9f);
-    //rt.set_right(1.f);
-    //rt.set_bottom(1.f);
-    //RectTransform rt2;
-    //rt2.set_anchorMinX(0.1f);
-    //rt2.set_anchorMaxX(0.7f);
-    //rt2.set_anchorMinY(0.1f);
-    //rt2.set_anchorMaxY(0.9f);
-    //rt2.set_right(1.f);
-    //rt2.set_bottom(1.f);
-    //rt.add_child(&rt2);
-
-    //rootRectTransform = &rt;
 
     //Image img{ &rt, texturePikachu };
     //rt.add_behaviour(&img);
@@ -316,12 +298,6 @@ int main(int argc, char** argv)
     //img->preserveAspectRation = true;
     //img->alignHorizontal = ImageAlignHorizontal::CENTER;
     //img->alignVertical = ImageAlignVertical::CENTER;
-
-
-    if (rootRectTransform->get_parent() != NULL)
-    {
-        throw std::runtime_error("premenna rootRectTransform.get_parent() nieje NULL");
-    }
 
 
     {

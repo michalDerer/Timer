@@ -262,8 +262,9 @@ void RectTransform::add_child(RectTransform* child)
     }
     else
     {
-        // child je vo vektore sceny, musime odobrat child zo sceny
-        SceneManager::get_activeScene()->remove_child(child);
+        // child nema parenta je vo kontente sceny, musime odobrat child zo sceny
+        //SceneManager::get_activeScene()->remove_child(child);
+        child->m_scene->remove_child(child);
     }
 
     child->m_parent = this;
@@ -346,27 +347,27 @@ void Scene::add_child(RectTransform* child)
 void Scene::remove_child(RectTransform* child)
 {
     // child nemoze byt null
-    if (child == NULL) throw std::runtime_error("RectTransform::remove_child: arg child nemoze byt null");
+    if (child == NULL) throw std::runtime_error("Scene::remove_child: arg child nemoze byt null");
 
     // ak child nieje v m_children nic nespravim s child
 
-    //auto it = std::remove(m_children.begin(), m_children.end(), child);
-    //m_children.erase(it, m_children.end());
+    //auto it = std::remove(m_content.begin(), m_content.end(), child);
+    //m_content.erase(it, m_content.end());
 
-    auto it = std::remove_if(m_children.begin(), m_children.end(),
+    auto it = std::remove_if(m_content.begin(), m_content.end(),
         [child](RectTransform* ptr)
         {
             return ptr == child;
         });
 
-    //vymazat parenta z child
-    for (auto start = it; start != m_children.end(); start++)
+    // ak child ma null parenta je to chyba
+    for (auto start = it; start != m_content.end(); start++)
     {
-        (*start)->m_parent = NULL;
+        if ((*start)->get_parent() != NULL) throw std::runtime_error("Scene::remove_child: child nachadzajuci sa v kontente sceny nemoze mat parenta");
     }
 
     //vymaze koniec vektora, kde je child
-    m_children.erase(it, m_children.end());
+    m_content.erase(it, m_content.end());
 }
 
 const std::vector<RectTransform*>& Scene::get_content()
@@ -535,11 +536,13 @@ void Image::calculateAspRect(SDL_FRect* aspRect)
     }
 }
 
+// Lua API ----------------------------------------------------------------------------------------------------------
 
-
-int LuaRectTransform_createInstance(lua_State* L)
+int LuaRectTransform_new(lua_State* L)
 {
     // argumenty: 0
+
+    // TODO: spravne implementovat konstroktory: RectTransform(),  RectTransform(RectTransform* parent)
 
     // Allocate userdata 
     // variant 1: alokuje len pamat, nevytvori sa object, nic sa neinicializuje, dostanem len alokovany pamet plnu odpadu
@@ -552,11 +555,6 @@ int LuaRectTransform_createInstance(lua_State* L)
     //keby som ma vo vnutry pointer, vytvaral by som instanciu na heape pomocou new, potom v destruktore by som ho musel nicit pomocou delete 
     //ud->obj = new RectTransform();
 
-    ud->obj.set_anchorMinX(.15f);
-    ud->obj.set_anchorMinY(.15f);
-    ud->obj.set_anchorMaxX(.85f);
-    ud->obj.set_anchorMaxY(.85f);
-
     //Set metatable
     luaL_getmetatable(L, "LuaRectTransform");   //pusne do staku na koniec metatable LuaRectTransform
     lua_setmetatable(L, -2);                    //setne objektu na -2 metatable z konca staku a popne, posledny prvok zo staku
@@ -568,8 +566,6 @@ int LuaRectTransform_createInstance(lua_State* L)
 int LuaRectTransform_gc(lua_State* L)
 {
     LuaRectTransform* ud = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
-
-    // !!! pred znicenim este treba RectTransform odobrat z hierarchie, to nastava v destruktore !!!
 
     // destrukcia, ak bol objekt vytvoreny takto:
     //void* mem = lua_newuserdata(L, sizeof(LuaRectTransform));
@@ -591,15 +587,109 @@ int LuaRectTransform_gc(lua_State* L)
 
 int LuaRectTransform_set_parent(lua_State* L)
 {
-    //argumenty: 2 parent, child
+    // parametre: 2 
+    //  arg 1: self,    typ: userdata typu LuaRectTransform 
+    //  arg 2: parent,  typ: userdata typu LuaRectTransform
 
-    LuaRectTransform* parent = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
-    LuaRectTransform* child = (LuaRectTransform*)luaL_checkudata(L, 2, "LuaRectTransform");
+    if (lua_gettop(L) != 2)
+    {
+        return luaL_error(L, "LuaRectTransform_set_parent: nespravny pocet argumentov");
+    }
 
-    child->obj.set_parent(&parent->obj);
+    LuaRectTransform* self = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
+    LuaRectTransform* parent = (LuaRectTransform*)luaL_checkudata(L, 2, "LuaRectTransform");
+   
+    self->obj.set_parent(&parent->obj);
+
     return 0;
 }
 
+int LuaRectTransform_set_values(lua_State* L)
+{
+    // parametre: 2
+    //  arg 1: self type: userdata LuaRectTransform
+    //  arg 2: tabulka, ktora moze obsahujuca nasledujuce kluce
+    //      anchorMinX  (float)
+    //      anchorMinY  (float)
+    //      anchorMaxX  (float)
+    //      anchorMaxY  (float)
+    //      left        (float)
+    //      right       (float)
+    //      top         (float)
+    //      bottom      (float)
+
+    if (lua_gettop(L) != 2)
+    {
+        return luaL_error(L, "LuaRectTransform_set_values: nespravny pocet argumentov");
+    }
+
+    LuaRectTransform* self = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");  // ak arg 1 nieje spravneho typu hodi error
+
+    luaL_checktype(L, 2, LUA_TTABLE);    // ak arg 2 nieje spravneho typu hodi error
+
+    // dve najcastejsie moznosti
+    //lua_getfield(L, 1, "anchorMinX");
+    // alebo
+    //lua_pushstring(L, "anchorMinX");  // pusne key
+    //lua_gettable(L, -2)               // popne key, pusne prislusnu value z tabulky, key v tabulke key nieje pusne nil 
+
+    typedef void(RectTransform::* func)(float);
+    const std::pair<const char*, func> pairs[]
+    //const std::pair<const char*, void(RectTransform::*)(float)> pairs[]
+    {
+        { "anchorMinX", &RectTransform::set_anchorMinX },
+        { "anchorMinY", &RectTransform::set_anchorMinY },
+        { "anchorMaxX", &RectTransform::set_anchorMaxX },
+        { "anchorMaxY", &RectTransform::set_anchorMaxY },
+        { "left",   &RectTransform::set_left },
+        { "right",  &RectTransform::set_right },
+        { "top",    &RectTransform::set_top },
+        { "bottom", &RectTransform::set_bottom }
+    };
+
+    for (auto& [name, func] : pairs)
+    {
+        lua_getfield(L, 2, name);
+        //lua_Number number = lua_tonumber(L, -1);              // Converts the Lua value at the given index to the C type lua_Number, ak konverzia neuspesna ziadna hlaska alebo error
+        lua_Number number = luaL_checknumber(L, -1);            // Converts the Lua value at the given index to the C type lua_Number, ak konverzia neuspesna hodi error
+        (self->obj.*func)(static_cast<float>(number));
+        lua_pop(L, 1);                                          // popne ziskanu value z tabulky (popuje zadany pocet values z vrchu staku)
+    }
+
+    return 0;
+}
+
+
+void register_LuaRectTransform(lua_State* L)
+{
+    luaL_newmetatable(L, "LuaRectTransform");   // vytvor metatable
+
+    lua_pushcfunction(L, LuaRectTransform_gc);  // pusne metodu na stak
+    lua_setfield(L, -2, "__gc");                // setne metodu do metatable, popne metodu zo staku
+
+    lua_pushvalue(L, -1);               // skopiruje metatable na vrchu staku a pusne kopiu na stak
+    lua_setfield(L, -2, "__index");     // metatable si nastavi do __index fildu kopiue seba z vrchu staku, popne zo staku kopiu metatable
+
+    luaL_Reg methods[] = 
+    {
+        {"set_parent",  LuaRectTransform_set_parent},
+        {"set_values",  LuaRectTransform_set_values},
+        { NULL, NULL }                                   // pole tohoto typu musi koncit vzdy takto
+    };
+    luaL_setfuncs(L, methods, 0);                           // Registers all functions in the array into the table on the top of the stack, treti parameter je pocet upvalues
+
+    lua_newtable(L);                                        // vytvori table, pusne na stak
+    lua_pushcfunction(L, LuaRectTransform_new);             // pusne funkciu na stak
+    lua_setfield(L, -2, "new");                             // setne funkciu do tabulky, popne funkciu zo staku
+    lua_setglobal(L, "LuaRectTransform");                   // Pops a value from the stack and sets it as the new value of global name.
+
+    lua_pop(L, 1);                                          // popne metatable (popuje zadany pocet values z vrchu staku)
+
+    //globalne funkcie
+    lua_register(L, "LuaRectTransform_new", LuaRectTransform_new);
+    //lua_register(L, "LuaRectTransform_set_parent", LuaRectTransform_set_parent);
+
+}
 
 int set_rootRectTransform(lua_State* L)
 {
@@ -618,31 +708,15 @@ int set_rootRectTransform(lua_State* L)
     return 0; // no return values
 }
 
-void register_LuaRectTransform(lua_State* L)
-{
-    luaL_newmetatable(L, "LuaRectTransform");
-
-    lua_pushcfunction(L, LuaRectTransform_gc);
-    lua_setfield(L, -2, "__gc");
-
-    lua_pop(L, 1);
-}
-
-void register_API(lua_State* L, void** rootRectTransform)
+void register_API(lua_State* L)
 {
     register_LuaRectTransform(L);
-    lua_register(L, "LuaRectTransform_createInstance", LuaRectTransform_createInstance);
-    lua_register(L, "LuaRectTransform_set_parent", LuaRectTransform_set_parent);
 
-    {
-        //if not closure is used
-        //lua_register(L, "set_rootRectTransform", set_rootRectTransform);
-        
-        // if closure is used, for upvalue
-        lua_pushlightuserdata(L, rootRectTransform);
-        lua_pushcclosure(L, set_rootRectTransform, 1);
-        lua_setglobal(L, "set_rootRectTransform");
-    }
+  
+    // ak potrebujeme, aby mala metoda pristup k niecomu specifickemu, musime ju registrovat v closure, ktory zaobaluje lightuserdata a funkciu
+    //lua_pushlightuserdata(L, rootRectTransform);
+    //lua_pushcclosure(L, set_rootRectTransform, 1);
+    //lua_setglobal(L, "set_rootRectTransform");
 }
 
 

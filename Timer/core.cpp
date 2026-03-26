@@ -16,17 +16,45 @@ RectTransform::RectTransform() :
     //m_pivotOffsetX(.0f),
     //m_pivotOffsetY(.0f),
     m_rect(),
+    m_scene(NULL),
     m_parent(NULL),
     m_children(),
     m_behaviours()
 {
     std::printf("RectTransform::RectTransform()\n");
+
+    m_scene = SceneManager::get_activeScene();
+    m_scene->add_child(this);
+}
+
+RectTransform::RectTransform(RectTransform* parent) :
+    m_anchorMinX(.0f),
+    m_anchorMinY(.0f),
+    m_anchorMaxX(1.f),
+    m_anchorMaxY(1.f),
+    m_left(.0f),
+    m_right(.0f),
+    m_top(.0f),
+    m_bottom(.0f),
+    //m_pivotOffsetX(.0f),
+    //m_pivotOffsetY(.0f),
+    m_rect(),
+    m_scene(NULL),
+    m_parent(NULL),
+    m_children(),
+    m_behaviours()
+{
+    std::printf("RectTransform::RectTransform(RectTransform* parent)\n");
+
+    m_scene = parent->m_scene;
+    parent->add_child(this);
 }
 
 RectTransform::~RectTransform() 
 {
-    // !!! treba RectTransform odobrat z hierarchie, to nastava tuna v destruktore !!!
     std::printf("RectTransform::~RectTransform()\n");
+
+    // TODO: treba objekt odobrat z hierarchie RectTransformov, pripadne zo scene
 
     // odpojenie od parenta
     set_parent(NULL);
@@ -37,6 +65,13 @@ RectTransform::~RectTransform()
         RectTransform* child = get_child(0);
         remove_child(child);
     }
+}
+
+
+
+RectTransform*& RectTransform::operator[](int idx)
+{
+    return get_child(idx);
 }
 
 
@@ -127,6 +162,11 @@ SDL_FRect RectTransform::get_rect() const
     return m_rect;
 }
 
+Scene* RectTransform::get_scene()
+{
+    return m_scene;
+}
+
 RectTransform* RectTransform::get_parent() 
 {
     return m_parent; 
@@ -134,20 +174,40 @@ RectTransform* RectTransform::get_parent()
 
 void RectTransform::set_parent(RectTransform* parent)
 {
-    // parent moze byt null
+    // novy parent moze byt null
     //if (parent == NULL) throw std::runtime_error("RectTransform::set_parent: arg parent nemoze byt null");
 
-    // ak ma child parenta odoberam child staremu parentovy
-    if (m_parent != NULL)
+    if (m_parent == NULL && parent != NULL)
     {
-        m_parent->remove_child(this);
-    }
+        // zobrat zo sceny, dat pod noveho parenta
 
-    // ak novy parent existuje, child mu pridam
-    if (parent != NULL)
-    { 
+        // parent a child musia byt z tej istej sceny
+        if (parent->m_scene != m_scene) throw std::runtime_error("RectTransform::set_parent: nemozem dat child parentovi z inej sceny");
+
+        m_scene->remove_child(this);
         parent->add_child(this);
     }
+    else if (m_parent != NULL && parent == NULL)
+    {
+        // zobrat zo stareho parenta, dat do sceny
+
+        m_parent->remove_child(this);
+        m_scene->add_child(this);
+    }
+    else if (m_parent != NULL && parent != NULL)
+    {
+        // zobrat zo stareho parenta, dat pod novy parent
+
+        // parent a child musia byt z tej istej sceny
+        if (parent->m_scene != m_scene) throw std::runtime_error("RectTransform::set_parent: nemozem dat child parentovi z inej sceny");
+
+        m_parent->remove_child(this);
+        parent->add_child(this);
+    }
+    //else if (m_parent == NULL && parent == NULL)
+    //{
+    //    // NIC
+    //}
 }
 
 int RectTransform::get_childCount() noexcept
@@ -155,7 +215,7 @@ int RectTransform::get_childCount() noexcept
     return static_cast<int>(m_children.size());
 }
 
-RectTransform* RectTransform::get_child(int idx)
+RectTransform*& RectTransform::get_child(int idx)
 {
     if (0 <= idx && idx < m_children.size())
     {
@@ -163,7 +223,9 @@ RectTransform* RectTransform::get_child(int idx)
     }
     else
     {
-        return NULL;
+        throw std::runtime_error("RectTransform::get_child: arg idx mimo hranic");
+
+        //return NULL;
     }
 }
 
@@ -171,16 +233,7 @@ RectTransform* RectTransform::get_child(int idx)
 
 RectTransform* RectTransform::create_child()
 {
-    /*
-    auto child = std::make_unique<RectTransform>();
-    child->parent = this;
-    RectTransform* rawPtr = child.get();
-    children.push_back(std::move(child));
-
-    return rawPtr;
-    */
-
-    auto child = new RectTransform();
+    auto child = new RectTransform(this);
 
     child->m_parent = this;
     m_children.push_back(child);
@@ -193,16 +246,24 @@ void RectTransform::add_child(RectTransform* child)
     // child nemoze byt null
     if (child == NULL) throw std::runtime_error("RectTransform::add_child: arg child nemoze byt null");
 
-    // child nemoze byt viackrat pod parentom
+    // parent a child musia byt z tej istej sceny
+    if (m_scene != child->m_scene) throw std::runtime_error("RectTransform::add_child: nemozem dat child parentovi z inej sceny");
+
+    // child nemoze byt viacejkrat pod parentom, alebo inde v hierarchi sceny
     //if (std::find(m_children.begin(), m_children.end(), child) != m_children.end())
     //{
     //    throw std::runtime_error("RectTransform::add_child: arg child us je potomkom");
     //}
-
-    // ak child us ma parenta, musime najprv odobrat child z parenta
+     
     if (child->m_parent != NULL)
     {
+        // child ma parenta, musime odobrat child z parenta
         child->m_parent->remove_child(child);
+    }
+    else
+    {
+        // child je vo vektore sceny, musime odobrat child zo sceny
+        SceneManager::get_activeScene()->remove_child(child);
     }
 
     child->m_parent = this;
@@ -214,7 +275,7 @@ void RectTransform::remove_child(RectTransform* child)
     // child nemoze byt null
     if (child == NULL) throw std::runtime_error("RectTransform::remove_child: arg child nemoze byt null");
 
-    // ak child nieje v m_children nic snim nespravi
+    // ak child nieje v m_children nic nespravim s child
 
     //auto it = std::remove(m_children.begin(), m_children.end(), child);
     //m_children.erase(it, m_children.end());
@@ -259,9 +320,73 @@ void RectTransform::draw(SDL_Renderer* renderer) const
     SDL_RenderLine(renderer, m_rect.x, m_rect.y + m_rect.h, m_rect.x, m_rect.y);
 }
 
-//Time---------------------------------------------------------------------------------------------------------------
+//Scene--------------------------------------------------------------------------------------------------------------
 
-Scene::Scene() : content() {}
+Scene::Scene() : m_content() {}
+
+Scene::~Scene()
+{
+    // TODO: vymazat transformy zo sceny
+}
+
+void Scene::add_child(RectTransform* child)
+{
+    // nemoze byt null
+    if (child == NULL) throw std::runtime_error("Scene::add_child: arg child nemoze byt null");
+
+    // ak child ma parenta, musime odobrat child z parenta
+    if (child->get_parent() != NULL)
+    {
+        child->get_parent()->remove_child(child);
+    }
+
+    m_content.push_back(child);
+}
+
+void Scene::remove_child(RectTransform* child)
+{
+    // child nemoze byt null
+    if (child == NULL) throw std::runtime_error("RectTransform::remove_child: arg child nemoze byt null");
+
+    // ak child nieje v m_children nic nespravim s child
+
+    //auto it = std::remove(m_children.begin(), m_children.end(), child);
+    //m_children.erase(it, m_children.end());
+
+    auto it = std::remove_if(m_children.begin(), m_children.end(),
+        [child](RectTransform* ptr)
+        {
+            return ptr == child;
+        });
+
+    //vymazat parenta z child
+    for (auto start = it; start != m_children.end(); start++)
+    {
+        (*start)->m_parent = NULL;
+    }
+
+    //vymaze koniec vektora, kde je child
+    m_children.erase(it, m_children.end());
+}
+
+const std::vector<RectTransform*>& Scene::get_content()
+{
+    return m_content;
+}
+
+//SceneManager-------------------------------------------------------------------------------------------------------
+
+Scene* SceneManager::m_activeScene = NULL;
+
+Scene* SceneManager::get_activeScene()
+{
+    if (m_activeScene == NULL)
+    {
+        m_activeScene = new Scene();
+    }
+
+    return m_activeScene;
+}
 
 //Time---------------------------------------------------------------------------------------------------------------
 

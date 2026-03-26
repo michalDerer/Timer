@@ -29,9 +29,77 @@ class Time
 
 public:
 
+    Time()                              = delete;
+
+    Time(const Time&)                   = delete;   //Copying disabled
+    Time& operator=(const Time&)        = delete;
+
+    Time(Time&&) noexcept               = delete;    //Moving disabled
+    Time& operator=(Time&&) noexcept    = delete;
+
+    ~Time()                             = delete;
+
     static float get_deltaTime();
     static void set_deltaTime(float deltaTime);
 
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+/// <summary>
+/// 
+/// </summary>
+class Scene
+{
+
+    std::vector<RectTransform*> m_content;
+
+public:
+
+    Scene();
+
+    Scene(const Scene&)                 = delete;   //Copying disabled
+    Scene& operator=(const Scene&)      = delete;
+
+    Scene(Scene&&) noexcept             = delete;   //Moving disabled
+    Scene& operator=(Scene&&) noexcept  = delete;
+
+    ~Scene();
+
+
+
+    void add_child(RectTransform* rectTransform);
+    void remove_child(RectTransform* rectTransform);
+
+    const std::vector<RectTransform*>& get_content();
+};
+
+//----------------------------------------------------------------------------------------------------------
+
+/// <summary>
+/// 
+/// </summary>
+class SceneManager
+{
+    // TODO: nicenie sceny este chiba
+    static Scene* m_activeScene;
+
+public:
+
+    SceneManager()                                      = delete;
+
+    SceneManager(const SceneManager&)                   = delete;   //Copying disabled
+    SceneManager& operator=(const SceneManager&)        = delete;
+
+    SceneManager(SceneManager&&) noexcept               = delete;   //Moving disabled
+    SceneManager& operator=(SceneManager&&) noexcept    = delete;
+
+    ~SceneManager()                                  = delete;
+
+
+
+    static Scene* get_activeScene();
+    //static void set_activeScene(Scene* activeScene);
 };
 
 //----------------------------------------------------------------------------------------------------------
@@ -155,6 +223,7 @@ class RectTransform
 
     SDL_FRect m_rect;
     
+    Scene* m_scene;
     RectTransform* m_parent;
     std::vector<RectTransform*> m_children;
 
@@ -163,6 +232,7 @@ class RectTransform
 public:
     
     RectTransform();
+    RectTransform(RectTransform* parent);
 
     RectTransform(const RectTransform&)                 = delete;   //Copying disabled
     RectTransform& operator=(const RectTransform&)      = delete;        
@@ -171,6 +241,10 @@ public:
     RectTransform& operator=(RectTransform&&) noexcept  = delete;
 
     ~RectTransform();
+
+
+
+    RectTransform*& operator[](int idx);
 
 
 
@@ -203,12 +277,14 @@ public:
     void set_bottom(float value); 
 
     SDL_FRect get_rect() const;
-    
+
+    Scene* get_scene();
+
     RectTransform* get_parent();
     void set_parent(RectTransform* parent);
 
     int get_childCount() noexcept;
-    RectTransform* get_child(int idx);
+    RectTransform*& get_child(int idx);
 
 
 
@@ -266,28 +342,6 @@ public:
         return nullptr;
     }
 
-};
-
-//----------------------------------------------------------------------------------------------------------
-
-class Scene
-{
-
-public:
-
-    std::vector<RectTransform*> content;
-
-public:
-
-    Scene();
-
-    Scene(const Scene&)                 = delete;   //Copying disabled
-    Scene& operator=(const Scene&)      = delete;
-
-    Scene(Scene&&) noexcept             = delete;   //Moving disabled
-    Scene& operator=(Scene&&) noexcept  = delete;
-
-    ~Scene() = default;
 };
 
 //----------------------------------------------------------------------------------------------------------

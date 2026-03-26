@@ -22,15 +22,13 @@ SDL_Window*     window = NULL;
 SDL_Renderer*   renderer = NULL;
 
 SDL_FRect       windowRect{};
-RectTransform*  rootRectTransform = NULL;
+RectTransform*  rootRectTransform = NULL;   //TODO: odrobit Nhradila Scene v SceneManager
 
 const char*     pathPikachu = "pika.png";
 SDL_Texture*    texturePikachu = NULL;
 
 lua_State*      L = NULL;
 const char*     pathScriptsDir = "scripts";
-
-//Scene scene;
 
 
 //------------------------------------------------------------------------------------------------------------
@@ -327,7 +325,7 @@ int main(int argc, char** argv)
 
 
     {
-        std::vector<RectTransform*> transformy{ rootRectTransform };
+        std::vector<RectTransform*> transformy{SceneManager::get_activeScene()->get_content()};
 
         while (!transformy.empty())
         {
@@ -377,7 +375,7 @@ int main(int argc, char** argv)
                 windowRect.h = static_cast<float>(winH);
 
                 {
-                    std::vector<RectTransform*> transformy{ rootRectTransform };
+                    std::vector<RectTransform*> transformy{SceneManager::get_activeScene()->get_content()};
 
                     while (!transformy.empty())
                     {
@@ -407,7 +405,7 @@ int main(int argc, char** argv)
         SDL_RenderClear(renderer);
 
         {
-            std::vector<RectTransform*> transformy{ rootRectTransform };
+            std::vector<RectTransform*> transformy{SceneManager::get_activeScene()->get_content()};
 
             while (!transformy.empty())
             {

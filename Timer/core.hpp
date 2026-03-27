@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <memory>
 
 #include "SDL3/SDL.h"
 
@@ -12,11 +13,6 @@
 //FORWARD DECLARATIONS
 
 class RectTransform;
-
-//----------------------------------------------------------------------------------------------------------
-//GLOBAL WARIABLES DECLARATIONS
-
-extern SDL_Renderer* renderer;
 
 //----------------------------------------------------------------------------------------------------------
 
@@ -194,8 +190,8 @@ public:
     void set_texture(SDL_Texture* texture);
 
 
+
     void update() override;
-    void update(SDL_Renderer* renderer);
 
 private:
 
@@ -346,9 +342,20 @@ public:
 
 //----------------------------------------------------------------------------------------------------------
 
+struct LuaTexture
+{
+    std::shared_ptr<SDL_Texture> texture;
+};
+
+int LuaTexture_new(lua_State* L);
+int LuaTexture_gc(lua_State* L);
+
+void register_LuaTexture(lua_State* L);
+
+
 struct LuaRectTransform
 {
-    RectTransform obj{};
+    RectTransform rectTransform;
 };
 
 int LuaRectTransform_new(lua_State* L);
@@ -358,7 +365,6 @@ int LuaRectTransform_set_values(lua_State* L);
 
 void register_LuaRectTransform(lua_State* L);
 
-int set_rootRectTransform(lua_State* L);
 void register_API(lua_State* L);
 
 //----------------------------------------------------------------------------------------------------------

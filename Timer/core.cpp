@@ -1,7 +1,11 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include <SDL3_image/SDL_image.h>
+
 #include "core.hpp"
+#include "context.hpp"
+
 
 
 RectTransform::RectTransform() : 
@@ -466,11 +470,6 @@ void Image::set_texture(SDL_Texture* texture)
 
 void Image::update()
 {
-    Image::update(renderer);
-};
-
-void Image::update(SDL_Renderer* renderer)
-{
     SDL_FRect dRect = get_transform()->get_rect();
 
     if (preserveAspectRation)
@@ -480,14 +479,13 @@ void Image::update(SDL_Renderer* renderer)
 
     if (m_texture)
     {
-        SDL_RenderTexture(renderer, m_texture, &m_textureRect, &dRect);
+        SDL_RenderTexture(Context::renderer, m_texture, &m_textureRect, &dRect);
     }
     else
     {
         //Magenta color(RGB: 255, 0, 255)
-        SDL_SetRenderDrawColor(renderer, 255, 0, 255, 255);
-        //SDL_GetRenderDrawColor()
-        SDL_RenderFillRect(renderer, &dRect);
+        SDL_SetRenderDrawColor(Context::renderer, 255, 0, 255, 255);
+        SDL_RenderFillRect(Context::renderer, &dRect);
     }
 }
 
@@ -495,7 +493,6 @@ void Image::calculateAspRect(SDL_FRect* aspRect)
 {
     if (aspRect->h * m_textureAsp <= aspRect->w)
     {
-        
         if ((alignHorizontal & ImageAlignHorizontal::CENTER) == ImageAlignHorizontal::CENTER)
         {
             aspRect->x += aspRect->w / 2.f - (aspRect->h * m_textureAsp) / 2.f;
@@ -537,6 +534,82 @@ void Image::calculateAspRect(SDL_FRect* aspRect)
 }
 
 // Lua API ----------------------------------------------------------------------------------------------------------
+
+int LuaTexture_new(lua_State* L)
+{
+
+    if (Context::pathExe == NULL)
+    {
+        return luaL_error(L, "LuaTexture_new: Context::pathExe je null");
+    }
+
+    const char* relativePath;
+    std::string fullPath = std::string{ Context::pathExe } + relativePath;
+    printf("fullPath: %s\n", fullPath.c_str());
+
+    SDL_Surface* surface = IMG_Load(fullPath.c_str());
+
+    if (!surface)
+    {
+        printf("LuaTexture_new: IMG_Load failed: %s", SDL_GetError());
+        return luaL_error(L, "LuaTexture_new: IMG_Load failed");
+    }
+
+    SDL_Texture* texture = SDL_CreateTextureFromSurface(Context::renderer, surface);
+    SDL_DestroySurface(surface);
+    surface = NULL;
+
+    if (!texture)
+    {
+        printf("LuaTexture_new: SDL_CreateTextureFromSurface failed: %s", SDL_GetError());
+        return luaL_error(L, "LuaTexture_new: SDL_CreateTextureFromSurface failed");
+    }
+
+
+
+    return 1;
+}
+
+int LuaTexture_gc(lua_State* L)
+{
+    if (texturePikachu)
+    {
+        SDL_DestroyTexture(texturePikachu);
+        texturePikachu = nullptr;
+    }
+
+    return 0;
+}
+
+void register_LuaTexture(lua_State* L)
+{
+    luaL_newmetatable(L, "LuaTexture");
+
+    lua_pushcfunction(L, LuaTexture_gc);
+    lua_setfield(L, -2, "__gc");
+
+    //lua_pushvalue(L, -1);
+    //lua_setfield(L, -2, "__index");
+
+    //luaL_Reg methods[] =
+    //{
+    //    //{"set_values",  LuaRectTransform_set_values},
+    //    { NULL, NULL }
+    //};
+    //luaL_setfuncs(L, methods, 0);
+
+    lua_newtable(L);
+    lua_pushcfunction(L, LuaTexture_new);
+    lua_setfield(L, -2, "new");
+    lua_setglobal(L, "LuaTexture");
+
+    lua_pop(L, 1);
+
+    //globalne funkcie
+    lua_register(L, "LuaTexture_new", LuaTexture_new);
+}
+
+
 
 int LuaRectTransform_new(lua_State* L)
 {
@@ -599,7 +672,7 @@ int LuaRectTransform_set_parent(lua_State* L)
     LuaRectTransform* self = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
     LuaRectTransform* parent = (LuaRectTransform*)luaL_checkudata(L, 2, "LuaRectTransform");
    
-    self->obj.set_parent(&parent->obj);
+    self->rectTransform.set_parent(&parent->rectTransform);
 
     return 0;
 }
@@ -650,10 +723,10 @@ int LuaRectTransform_set_values(lua_State* L)
     for (auto& [name, func] : pairs)
     {
         lua_getfield(L, 2, name);
-        //lua_Number number = lua_tonumber(L, -1);              // Converts the Lua value at the given index to the C type lua_Number, ak konverzia neuspesna ziadna hlaska alebo error
-        lua_Number number = luaL_checknumber(L, -1);            // Converts the Lua value at the given index to the C type lua_Number, ak konverzia neuspesna hodi error
-        (self->obj.*func)(static_cast<float>(number));
-        lua_pop(L, 1);                                          // popne ziskanu value z tabulky (popuje zadany pocet values z vrchu staku)
+        //lua_Number number = lua_tonumber(L, -1);                  // Converts the Lua value at the given index to the C type lua_Number, ak konverzia neuspesna ziadna hlaska alebo error
+        lua_Number number = luaL_checknumber(L, -1);                // Converts the Lua value at the given index to the C type lua_Number, ak konverzia neuspesna hodi error
+        (self->rectTransform.*func)(static_cast<float>(number));
+        lua_pop(L, 1);                                              // popne ziskanu value z tabulky (popuje zadany pocet values z vrchu staku)
     }
 
     return 0;
@@ -667,7 +740,7 @@ void register_LuaRectTransform(lua_State* L)
     lua_pushcfunction(L, LuaRectTransform_gc);  // pusne metodu na stak
     lua_setfield(L, -2, "__gc");                // setne metodu do metatable, popne metodu zo staku
 
-    lua_pushvalue(L, -1);               // skopiruje metatable na vrchu staku a pusne kopiu na stak
+    lua_pushvalue(L, -1);               // skopiruje metatable na vrchu staku (referenciu) a pusne kopiu na stak
     lua_setfield(L, -2, "__index");     // metatable si nastavi do __index fildu kopiue seba z vrchu staku, popne zo staku kopiu metatable
 
     luaL_Reg methods[] = 
@@ -688,34 +761,36 @@ void register_LuaRectTransform(lua_State* L)
     //globalne funkcie
     lua_register(L, "LuaRectTransform_new", LuaRectTransform_new);
     //lua_register(L, "LuaRectTransform_set_parent", LuaRectTransform_set_parent);
-
 }
 
-int set_rootRectTransform(lua_State* L)
-{
-    // Check we got exactly 1 argument (optional but good)
-    luaL_checktype(L, 1, LUA_TUSERDATA);
 
-    // Get userdata argument
-    LuaRectTransform* ud = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
-
-    // upvalue = RectTransform**
-    RectTransform** rootRectTransform = (RectTransform**)lua_touserdata(L, lua_upvalueindex(1));
-
-    // Assign global pointer
-    *rootRectTransform = &ud->obj;
-
-    return 0; // no return values
-}
 
 void register_API(lua_State* L)
 {
     register_LuaRectTransform(L);
+    register_LuaTexture(L);
 
-  
     // ak potrebujeme, aby mala metoda pristup k niecomu specifickemu, musime ju registrovat v closure, ktory zaobaluje lightuserdata a funkciu
-    //lua_pushlightuserdata(L, rootRectTransform);
-    //lua_pushcclosure(L, set_rootRectTransform, 1);
+    //lua_pushlightuserdata(L, /* void**  */ );
+    //lua_pushcclosure(
+    //    L, 
+    //    [](lua_State* L) -> int 
+    //    { 
+    //        // Check we got exactly 1 argument (optional but good)
+    //        luaL_checktype(L, 1, LUA_TUSERDATA);
+    //
+    //        // Get userdata argument
+    //        LuaRectTransform* ud = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
+    //
+    //        // upvalue = RectTransform**
+    //        RectTransform** rootRectTransform = (RectTransform**)lua_touserdata(L, lua_upvalueindex(1));
+    //
+    //        // Assign global pointer
+    //        *rootRectTransform = &ud->rectTransform;
+    //
+    //        return 0; // no return values
+    //    },
+    //    1);
     //lua_setglobal(L, "set_rootRectTransform");
 }
 

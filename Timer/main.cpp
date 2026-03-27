@@ -5,54 +5,33 @@
 #include <string>
 
 #include "SDL3/SDL.h"
-#include "SDL3_image/SDL_image.h"
+//#include "SDL3_image/SDL_image.h"
 
 #include "lua.hpp"
 
 #include "core.hpp"
+#include "context.hpp"
 
 
 
-//------------------------------------------------------------------------------------------------------------
-
-
-const char*     pathExe = NULL;
-
-SDL_Window*     window = NULL;
-SDL_Renderer*   renderer = NULL;
-
-SDL_FRect       windowRect{};
-
-const char*     pathPikachu = "pika.png";
-SDL_Texture*    texturePikachu = NULL;
-
-lua_State*      L = NULL;
-const char*     pathScriptsDir = "scripts";
-
-
-//------------------------------------------------------------------------------------------------------------
-
-
-static int initPathToExe()
+static int initPathExe()
 {
-    pathExe = SDL_GetBasePath();
+    Context::pathExe = SDL_GetBasePath();
 
-    if (pathExe)
+    if (Context::pathExe)
     {
-        printf("pathExe: %s\n", pathExe);
-
+        printf("Context::pathExe: %s\n", Context::pathExe);
         return 0;
     }
     else
     {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "SDL_GetBasePath failed: %s", SDL_GetError());
-
         return 1;
     }
 }
 
 
-static int createWindow(/*SDL_Window** window, SDL_Renderer** renderer*/)
+static int createWindow()
 {
     //SDL_SetHint(SDL_HINT_VIDEO_DRIVER, "x11");
 
@@ -64,107 +43,68 @@ static int createWindow(/*SDL_Window** window, SDL_Renderer** renderer*/)
         return 1;
     }
 
-    // SDL_Window* window = SDL_CreateWindow("Timer", 800, 600, SDL_WINDOW_RESIZABLE);
-    // SDL_Renderer* renderer = SDL_CreateRenderer(window, NULL);
+    //Context::window = SDL_CreateWindow("Timer", 800, 600, SDL_WINDOW_RESIZABLE);
+    //Context::renderer = SDL_CreateRenderer(Context::window, NULL);
 
     if (!SDL_CreateWindowAndRenderer(
         "Timer",
         800, 600,
         SDL_WINDOW_RESIZABLE,
-        &window, &renderer))
+        &Context::window, &Context::renderer))
     {
         SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window or renderer or both %s", SDL_GetError());
 
         return 1;
     }
 
-    // if (!window)
-    // {
-    //     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window %s", SDL_GetError());
+    //if (!Context::window)
+    //{
+    //    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create window %s", SDL_GetError());
     // 
-    //     return 1;
-    // }
+    //    return 1;
+    //}
 
-    // if (!renderer)
-    // {
-    //     SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create renderer %s", SDL_GetError());
+    //if (!Context::renderer)
+    //{
+    //    SDL_LogError(SDL_LOG_CATEGORY_ERROR, "Could not create renderer %s", SDL_GetError());
     // 
-    //     return 1;
-    // }
+    //    return 1;
+    //}
 
     return 0;
 }
 
-
-static int loadAssets(/*const char* pathToExe, SDL_Renderer* renderer, SDL_Texture** texturePikachu*/)
+static int createLua()
 {
-    if (pathExe == NULL)
-    {
-        SDL_Log("pathExe is null");
+    Context::L = luaL_newstate();
 
-        return 1;
-    }
-
-    printf("pathPikachuFull: %s\n", std::string(pathExe).append(pathPikachu).c_str());
-    SDL_Surface* surface = IMG_Load(std::string(pathExe).append(pathPikachu).c_str());
-   
-    if (!surface)
-    {
-        SDL_Log("IMG_Load failed: %s", SDL_GetError());
-
-        return 1;
-    }
-
-    texturePikachu = SDL_CreateTextureFromSurface(renderer, surface);
-    SDL_DestroySurface(surface);
-    surface = NULL;
-
-    if (!texturePikachu)
-    {
-        SDL_Log("Failed to create texture: %s", SDL_GetError());
-
-        return 1;
-    }
-
-    return 0;
-}
-
-
-static int executeLuaScripts()
-{
-    L = luaL_newstate(); 
     //luaL_openlibs(L);
-
-    //--------------------
 
     //luaopen_base(L);
     //lua_setglobal(L, "_G");
 
-    luaL_requiref(L, "_G", luaopen_base, 1);
-    lua_pop(L, 1);
+    luaL_requiref(Context::L, "_G", luaopen_base, 1);
+    lua_pop(Context::L, 1);
 
-    luaL_requiref(L, "math", luaopen_math, 1);
-    lua_pop(L, 1);
-    
-    //--------------------
+    luaL_requiref(Context::L, "math", luaopen_math, 1);
+    lua_pop(Context::L, 1);
 
-    /*lua_pushcfunction(L, l_sin);
-    lua_setglobal(L, "mysin");*/
+    register_API(Context::L);
 
-    register_API(L);
+    return 0;
+}
 
-    //--------------------
+static int executeLua()
+{
+    std::string pathScriptsFull{Context::pathExe};
+    pathScriptsFull.append(Context::pathScripts);
+    printf("pathScriptsFull: %s\n", pathScriptsFull.c_str());
 
-    std::string pathScriptsDirFull{pathExe};
-    pathScriptsDirFull.append(pathScriptsDir);
-    printf("pathScriptsDirFull: %s\n", pathScriptsDirFull.c_str());
-
-    std::filesystem::path p{pathScriptsDirFull};
+    std::filesystem::path p{pathScriptsFull};
 
     if (!std::filesystem::exists(p) || !std::filesystem::is_directory(p))
     {
-        printf("pathScriptsDirFull je nevalidna\n");
-
+        printf("pathScriptsFull je nevalidna\n");
         return 1;
     }
 
@@ -180,9 +120,9 @@ static int executeLuaScripts()
             //   return 1;
             //}
 
-            if (luaL_dofile(L, entry.path().string().c_str()) != LUA_OK)
+            if (luaL_dofile(Context::L, entry.path().string().c_str()) != LUA_OK)
             {
-                printf("Error: %s\n", lua_tostring(L, -1));
+                printf("Error: %s\n", lua_tostring(Context::L, -1));
                     
                 return 1;
             }
@@ -195,34 +135,29 @@ static int executeLuaScripts()
 
 static void freeAll()
 {
-    if (L)
+    if (Context::L)
     {
-        lua_close(L);
+        lua_close(Context::L);
+        Context::L = nullptr;
     }
 
     //nemozem uvolnit pathToExe, lebo sa uvolnuje v SDL_Quit()
-    /*if (pathToExe)
-    {
-        SDL_free((void*)pathToExe);
-        pathToExe = nullptr;
-    }*/
+    //if (Context::pathExe)
+    //{
+    //    SDL_free((void*)Context::pathExe);
+    //    Context::pathExe = nullptr;
+    //}
 
-    if (texturePikachu)
+    if (Context::renderer)
     {
-        SDL_DestroyTexture(texturePikachu);
-        texturePikachu = nullptr;
+        SDL_DestroyRenderer(Context::renderer);
+        Context::renderer = nullptr;
     }
 
-    if (renderer)
+    if (Context::window)
     {
-        SDL_DestroyRenderer(renderer);
-        renderer = nullptr;
-    }
-
-    if (window)
-    {
-        SDL_DestroyWindow(window);
-        window = nullptr;
+        SDL_DestroyWindow(Context::window);
+        Context::window = nullptr;
     }
 
     SDL_Quit();
@@ -249,42 +184,15 @@ static int freeIfNotReturn0(Method method)
 
 int main(int argc, char** argv)
 {
-    
-    //int initPathToExeResult = initPathToExe();
-    //if (initPathToExeResult != 0)
-    //{
-    //    freeAll();
-    //    return initPathToExeResult;
-    //}
-    if (auto result = freeIfNotReturn0(initPathToExe)) return result;
-    
-    //int createWindowResult = createWindow();
-    //if (createWindowResult != 0)
-    //{
-    //    freeAll();
-    //    return createWindowResult;
-    //}
+
+    if (auto result = freeIfNotReturn0(initPathExe)) return result;
     if (auto result = freeIfNotReturn0(createWindow)) return result;
+    if (auto result = freeIfNotReturn0(createLua)) return result;
+    if (auto result = freeIfNotReturn0(executeLua)) return result;
 
-    //int loadAssetsResult = loadAssets();
-    //if (loadAssetsResult != 0)
-    //{
-    //    freeAll();
-    //    return loadAssetsResult;
-    //}
-    if (auto result = freeIfNotReturn0(loadAssets)) return result;
-
-    //int executeLuaScriptsResult = executeLuaScripts();
-    //if (executeLuaScriptsResult != 0)
-    //{
-    //    freeAll();
-    //    return executeLuaScriptsResult;
-    //}
-    if (auto result = freeIfNotReturn0(executeLuaScripts)) return result;
-
-
+    SDL_FRect windowRect{};
     int winW, winH;
-    SDL_GetWindowSize(window, &winW, &winH);
+    SDL_GetWindowSize(Context::window, &winW, &winH);
     windowRect.x = 0;
     windowRect.y = 0;
     windowRect.w = static_cast<float>(winW);
@@ -377,8 +285,8 @@ int main(int argc, char** argv)
         }
 
         //clear
-        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
-        SDL_RenderClear(renderer);
+        SDL_SetRenderDrawColor(Context::renderer, 20, 20, 20, 255);
+        SDL_RenderClear(Context::renderer);
 
         {
             std::vector<RectTransform*> transformy{SceneManager::get_activeScene()->get_content()};
@@ -388,7 +296,7 @@ int main(int argc, char** argv)
                 RectTransform* cur = transformy.front();
                 transformy.erase(transformy.begin());
 
-                cur->draw(renderer);
+                cur->draw(Context::renderer);
 
                 auto behaviourImage = cur->get_behaviour<Image>();
                 if (behaviourImage != nullptr)
@@ -409,7 +317,7 @@ int main(int argc, char** argv)
         //img.update(renderer);
 
 
-        SDL_RenderPresent(renderer);
+        SDL_RenderPresent(Context::renderer);
         //SDL_Delay(16);
     }
 

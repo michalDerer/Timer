@@ -174,6 +174,7 @@ public:
 public:
 
     Image()                                                 = delete;   //default constructor
+    Image(RectTransform* transform);
     Image(RectTransform* transform, SDL_Texture* texture);
 
     Image(const Image& other)                               = delete;   //copy constructor
@@ -406,6 +407,19 @@ int LuaTexture_gc(lua_State* L);
 void register_LuaTexture(lua_State* L);
 
 
+
+struct LuaImage
+{
+    Image* image;
+};
+
+//int LuaImage_new(lua_State* L);
+int LuaImage_gc(lua_State* L);
+
+void register_LuaImage(lua_State* L);
+
+
+
 struct LuaRectTransform
 {
     RectTransform rectTransform;
@@ -418,6 +432,7 @@ int LuaRectTransform_set_values(lua_State* L);
 int LuaRectTransform_add_behaviour(lua_State* L);
 
 void register_LuaRectTransform(lua_State* L);
+
 
 
 void register_API(lua_State* L);

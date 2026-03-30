@@ -409,7 +409,10 @@ void Time::set_deltaTime(float deltaTime)
 
 //Behaviour----------------------------------------------------------------------------------------------------------
 
-Behaviour::Behaviour(RectTransform* transform) : m_transform(transform) {}
+Behaviour::Behaviour(RectTransform* transform) : m_transform(transform) 
+{
+    if (!transform) throw std::runtime_error("arg transform is null");
+}
 
 RectTransform* Behaviour::get_transform()
 {
@@ -428,7 +431,18 @@ inline ImageAlignVertical operator&(ImageAlignVertical a, ImageAlignVertical b)
     return static_cast<ImageAlignVertical>(static_cast<unsigned int>(a) & static_cast<unsigned int>(b));
 }
 
-Image::Image(RectTransform* transform, SDL_Texture* texture) : 
+Image::Image(RectTransform* transform) :
+    Behaviour(transform),
+    m_texture(nullptr),
+    m_textureRect(),
+    m_textureAsp(.0f),
+    preserveAspectRation(false),
+    alignHorizontal(ImageAlignHorizontal::CENTER),
+    alignVertical(ImageAlignVertical::CENTER)
+{
+}
+
+Image::Image(RectTransform* transform, SDL_Texture* texture) :
     Behaviour(transform), 
     m_texture(texture),
     m_textureRect(),
@@ -437,7 +451,6 @@ Image::Image(RectTransform* transform, SDL_Texture* texture) :
     alignHorizontal(ImageAlignHorizontal::CENTER),
     alignVertical(ImageAlignVertical::CENTER)
 {
-    if (!transform) throw std::runtime_error("arg transform is null");
     set_texture(texture);
 }
 
@@ -644,6 +657,42 @@ void register_LuaTexture(lua_State* L)
 
 
 
+int LuaImage_gc(lua_State* L)
+{
+    LuaImage* ud = (LuaImage*)luaL_checkudata(L, 1, "LuaImage");
+
+    ud->~LuaImage();
+
+    return 0;
+}
+
+void register_LuaImage(lua_State* L)
+{
+    luaL_newmetatable(L, "LuaImage");
+
+    lua_pushcfunction(L, LuaImage_gc);
+    lua_setfield(L, -2, "__gc");
+
+    lua_pushvalue(L, -1);       
+    lua_setfield(L, -2, "__index");
+
+    //luaL_Reg methods[] =
+    //{
+    //    {"set_values",  LuaRectTransform_set_values},
+    //    { NULL, NULL }
+    //};
+    //luaL_setfuncs(L, methods, 0);
+
+    //lua_newtable(L);
+    //lua_pushcfunction(L, LuaImage_new);
+    //lua_setfield(L, -2, "new");
+    //lua_setglobal(L, "LuaRectTransform");
+
+    lua_pop(L, 1);  //pop metatable
+}
+
+
+
 int LuaRectTransform_new(lua_State* L)
 {
     // argumenty: 0
@@ -763,17 +812,56 @@ int LuaRectTransform_set_values(lua_State* L)
     return 0;
 }
 
+/// <summary>
+/// 
+/// parametre: 2
+///     arg 1: self type: userdata LuaRectTransform
+///     arg 2: nazov typu behavioru type string
+/// 
+/// returny: 1
+///     vytvoreny behaviour alebo nil, ak sa nepodarilo
+/// 
+/// </summary>
+/// <param name="L"></param>
+/// <returns></returns>
 int LuaRectTransform_add_behaviour(lua_State* L)
 {
-    // parametre: 1
-    //  arg 1: nazov typu behavioru type string
-    // returny: 1
-    //  vytvoreny behaviour alebo nil, ak sa nepodarilo
+    if (lua_gettop(L) != 2)
+    {
+        return luaL_error(L, "LuaRectTransform_add_behaviour: nespravny pocet argumentov");
+    }
 
+    LuaRectTransform* self = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");  // ak arg 1 nieje spravneho typu hodi error
 
+    const char* behaviourType = luaL_checkstring(L, 2);
+    std::string str = behaviourType;
 
+    
+    if (str == "Image")
+    {
+        //TODO: otestovat self->rectTransform.add_behaviour<>(); ako sa sprava ked dame nespravnu vec
+        Image* image = self->rectTransform.add_behaviour<Image>();
 
-    return 1;
+        if (image == nullptr)
+        {
+            lua_pushnil(L);
+            return 1;
+        }
+
+        void* mem = lua_newuserdata(L, sizeof(LuaImage));
+        LuaImage* ud = new (mem) LuaImage();
+
+        ud->image = image;
+
+        luaL_getmetatable(L, "LuaImage");   
+        lua_setmetatable(L, -2);
+        return 1;
+    }
+    else
+    {
+        lua_pushnil(L);
+        return 1;
+    }
 }
 
 
@@ -789,8 +877,9 @@ void register_LuaRectTransform(lua_State* L)
 
     luaL_Reg methods[] = 
     {
-        {"set_parent",  LuaRectTransform_set_parent},
-        {"set_values",  LuaRectTransform_set_values},
+        {"set_parent",      LuaRectTransform_set_parent},
+        {"set_values",      LuaRectTransform_set_values},
+        {"add_behaviour",   LuaRectTransform_add_behaviour},
         { NULL, NULL }                                   // pole tohoto typu musi koncit vzdy takto
     };
     luaL_setfuncs(L, methods, 0);                           // Registers all functions in the array into the table on the top of the stack, treti parameter je pocet upvalues
@@ -813,6 +902,8 @@ void register_API(lua_State* L)
 {
     register_LuaRectTransform(L);
     register_LuaTexture(L);
+    register_LuaImage(L);
+
 
     // ak potrebujeme, aby mala metoda pristup k niecomu specifickemu, musime ju registrovat v closure, ktory zaobaluje lightuserdata a funkciu
     //lua_pushlightuserdata(L, /* void**  */ );

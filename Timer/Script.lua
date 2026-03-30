@@ -2,10 +2,11 @@
 print("Script.lua start")
 
 pikachu = LuaTexture.new("pika.png")
+
 parent = LuaRectTransform_new()
 child = LuaRectTransform.new()
-
 child:set_parent(parent)
+img = child:add_behaviour("Image")
 
 values = {
     anchorMinX = 0.1,

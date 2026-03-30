@@ -24,7 +24,7 @@ struct Player
     std::string PlayerName;
     std::string PlayerFamily;
     int PlayerLevel;
-} player;
+} player {};
 
 
 void louaCode()

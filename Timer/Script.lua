@@ -1,6 +1,7 @@
 
 print("Script.lua start")
 
+pikachu = LuaTexture.new("pika.png")
 parent = LuaRectTransform_new()
 child = LuaRectTransform.new()
 
@@ -25,6 +26,6 @@ values.anchorMaxX = 0.7
 values.anchorMaxY = 0.7
 child:set_values(values)
 
-
+pikachu = nil
 --child = nil
---collectgarbage()
+collectgarbage()

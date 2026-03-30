@@ -342,9 +342,62 @@ public:
 
 //----------------------------------------------------------------------------------------------------------
 
-struct LuaTexture
+struct Wrap
 {
     std::shared_ptr<SDL_Texture> texture;
+
+    Wrap() : texture(nullptr)
+    {
+        printf("Wrap() count: %i\n", texture.use_count());
+    }
+
+    Wrap(SDL_Texture* texture) : texture(texture, SDL_DestroyTexture)
+    {
+        printf("Wrap(SDL_Texture*) count: %i\n", this->texture.use_count());
+    }
+
+    ~Wrap()
+    {
+        printf("~Wrap() count: %i\n", texture.use_count());
+    }
+
+    Wrap& operator=(const Wrap& o) noexcept
+    {
+        if (this == &o) return *this; // self-assignment check
+
+        printf("Wrap asign copy before count: %i\n", texture.use_count());
+        texture = o.texture;
+        printf("Wrap asign copy after count: %i\n", texture.use_count());
+        return *this;
+    }
+
+    //Wrap& operator=(Wrap&& o) noexcept
+    //{
+    //    if (this == &o) return *this; // self-assignment check
+    //
+    //    printf("Wrap asign move\n");
+    //    texture.reset();
+    //    texture = std::move(o.texture);
+    //    o.texture.reset();
+    //    
+    //    return *this;
+    //}
+};
+
+struct LuaTexture
+{
+    //std::shared_ptr<SDL_Texture> texture;
+    Wrap wrap;
+
+    LuaTexture() : wrap()
+    {
+        printf("LuaTexture() count: %i\n", wrap.texture.use_count());
+    }
+
+    ~LuaTexture()
+    {
+        printf("~LuaTexture() count: %i\n", wrap.texture.use_count());
+    }
 };
 
 int LuaTexture_new(lua_State* L);
@@ -362,8 +415,10 @@ int LuaRectTransform_new(lua_State* L);
 int LuaRectTransform_gc(lua_State* L);
 int LuaRectTransform_set_parent(lua_State* L);
 int LuaRectTransform_set_values(lua_State* L);
+int LuaRectTransform_add_behaviour(lua_State* L);
 
 void register_LuaRectTransform(lua_State* L);
+
 
 void register_API(lua_State* L);
 

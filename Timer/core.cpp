@@ -48,7 +48,7 @@ RectTransform::RectTransform(RectTransform* parent) :
     m_children(),
     m_behaviours()
 {
-    std::printf("RectTransform::RectTransform(RectTransform* parent)\n");
+    std::printf("RectTransform::RectTransform(RectTransform*)\n");
 
     m_scene = parent->m_scene;
     parent->add_child(this);
@@ -537,15 +537,28 @@ void Image::calculateAspRect(SDL_FRect* aspRect)
 
 int LuaTexture_new(lua_State* L)
 {
+    if (lua_gettop(L) != 1)
+    {
+        return luaL_error(L, "LuaTexture_new: nespravny pocet argumentov");
+    }
+
+    // Converts the Lua value at the given index to a C string.
+    // If the value is a number, then lua_tolstring also changes the actual value in the stack to a string.
+    // Returns a pointer to a string inside the Lua state.This string always has a zero('\0') after its last character
+    // Because Lua has garbage collection, there is no guarantee that the pointer returned by lua_tolstring will be valid after the corresponding Lua value is removed from the stack.
+    // Ak sa hodnota neda skonvertovat vyhodi error
+    const char* relativePath = luaL_checkstring(L, 1);
+    
+
 
     if (Context::pathExe == NULL)
     {
-        return luaL_error(L, "LuaTexture_new: Context::pathExe je null");
+        return luaL_error(L, "LuaTexture_new: Context::pathExe nemoze byt null");
     }
 
-    const char* relativePath;
+    // netestujem spravnost formatu cesty, anim ci ukazuje na existujuci asset
     std::string fullPath = std::string{ Context::pathExe } + relativePath;
-    printf("fullPath: %s\n", fullPath.c_str());
+    printf("LuaTexture_new: fullPath: %s\n", fullPath.c_str());
 
     SDL_Surface* surface = IMG_Load(fullPath.c_str());
 
@@ -553,6 +566,11 @@ int LuaTexture_new(lua_State* L)
     {
         printf("LuaTexture_new: IMG_Load failed: %s", SDL_GetError());
         return luaL_error(L, "LuaTexture_new: IMG_Load failed");
+    }
+
+    if (Context::renderer == NULL)
+    {
+        return luaL_error(L, "LuaTexture_new: Context::renderer nemoze byt null");
     }
 
     SDL_Texture* texture = SDL_CreateTextureFromSurface(Context::renderer, surface);
@@ -567,16 +585,31 @@ int LuaTexture_new(lua_State* L)
 
 
 
+    void* mem = lua_newuserdata(L, sizeof(LuaTexture));
+    LuaTexture* ud = new (mem) LuaTexture();
+    //ud->texture = std::shared_ptr<SDL_Texture>(texture, SDL_DestroyTexture);
+    
+
+    ud->wrap = Wrap(texture);
+
+
+    luaL_getmetatable(L, "LuaTexture");     // pusne do staku na koniec metatable LuaTexture
+    lua_setmetatable(L, -2);                // setne metatable, popne 
+
     return 1;
 }
 
 int LuaTexture_gc(lua_State* L)
 {
-    if (texturePikachu)
+    LuaTexture* ud = (LuaTexture*)luaL_checkudata(L, 1, "LuaTexture");
+
+    ud->~LuaTexture();
+
+    if (ud->wrap.texture.get() != nullptr)
     {
-        SDL_DestroyTexture(texturePikachu);
-        texturePikachu = nullptr;
+        printf("not null");
     }
+    printf("after gc destroyer count: %i", ud->wrap.texture.use_count());
 
     return 0;
 }
@@ -601,7 +634,7 @@ void register_LuaTexture(lua_State* L)
     lua_newtable(L);
     lua_pushcfunction(L, LuaTexture_new);
     lua_setfield(L, -2, "new");
-    lua_setglobal(L, "LuaTexture");
+    lua_setglobal(L, "LuaTexture");         //aj popne
 
     lua_pop(L, 1);
 
@@ -625,7 +658,7 @@ int LuaRectTransform_new(lua_State* L)
     void* mem = lua_newuserdata(L, sizeof(LuaRectTransform));
     LuaRectTransform* ud = new (mem) LuaRectTransform();
 
-    //keby som ma vo vnutry pointer, vytvaral by som instanciu na heape pomocou new, potom v destruktore by som ho musel nicit pomocou delete 
+    //keby som mal vo vnutry pointer, vytvaral by som instanciu na heape pomocou new, potom v destruktore by som ho musel nicit pomocou delete 
     //ud->obj = new RectTransform();
 
     //Set metatable
@@ -643,10 +676,8 @@ int LuaRectTransform_gc(lua_State* L)
     // destrukcia, ak bol objekt vytvoreny takto:
     //void* mem = lua_newuserdata(L, sizeof(LuaRectTransform));
     //LuaRectTransform* ud = new (mem) LuaRectTransform();
-    if (ud)
-    {
-        ud->~LuaRectTransform();
-    }
+   
+    ud->~LuaRectTransform();
 
     // destrukcia, ak bol objekt vytvoreny takto, a vo vnutry by bol smernik:
     //LuaRectTransform* ud = (LuaRectTransform*)lua_newuserdata(L, sizeof(LuaRectTransform));
@@ -730,6 +761,19 @@ int LuaRectTransform_set_values(lua_State* L)
     }
 
     return 0;
+}
+
+int LuaRectTransform_add_behaviour(lua_State* L)
+{
+    // parametre: 1
+    //  arg 1: nazov typu behavioru type string
+    // returny: 1
+    //  vytvoreny behaviour alebo nil, ak sa nepodarilo
+
+
+
+
+    return 1;
 }
 
 

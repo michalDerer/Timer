@@ -826,37 +826,79 @@ int LuaRectTransform_set_values(lua_State* L)
 /// <returns></returns>
 int LuaRectTransform_add_behaviour(lua_State* L)
 {
-    if (lua_gettop(L) != 2)
+    if (lua_gettop(L) < 2)  // prvy a druhy parameter vzdy musia byt: self, string
     {
-        return luaL_error(L, "LuaRectTransform_add_behaviour: nespravny pocet argumentov");
+        return luaL_error(L, "LuaRectTransform_add_behaviour: arg 1 self a arg 2 string chibaju");
     }
 
-    LuaRectTransform* self = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");  // ak arg 1 nieje spravneho typu hodi error
+    LuaRectTransform* self = (LuaRectTransform*)luaL_checkudata(L, 1, "LuaRectTransform");
+    const char* str = luaL_checkstring(L, 2);
+    std::string behaviourTypeStr = str;
 
-    const char* behaviourType = luaL_checkstring(L, 2);
-    std::string str = behaviourType;
-
-    
-    if (str == "Image")
+    if (behaviourTypeStr == "Image")
     {
-        //TODO: otestovat self->rectTransform.add_behaviour<>(); ako sa sprava ked dame nespravnu vec
-        Image* image = self->rectTransform.add_behaviour<Image>();
+        // Image ma dva konstruktory
+        //Image(RectTransform * transform);
+        //Image(RectTransform * transform, SDL_Texture * texture);
 
-        if (image == nullptr)
+        Image* image = nullptr;
+        void* mem = nullptr;
+        LuaImage* lImage = nullptr;
+        LuaTexture* lTexture = nullptr;
+
+        switch (lua_gettop(L))
         {
-            lua_pushnil(L);
+        case 2:
+
+            //TODO: otestovat self->rectTransform.add_behaviour<>(); ako sa sprava ked dame nespravnu vec
+            image = self->rectTransform.add_behaviour<Image>();
+
+            if (image == nullptr)
+            {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            mem = lua_newuserdata(L, sizeof(LuaImage));
+            lImage = new (mem) LuaImage();
+            lImage->image = image;
+
+            luaL_getmetatable(L, "LuaImage");
+            lua_setmetatable(L, -2);
             return 1;
+            //break;
+
+        case 3:
+
+            lTexture = (LuaTexture*)luaL_checkudata(L, 3, "LuaTexture");
+
+            //TODO: otestovat self->rectTransform.add_behaviour<>(); ako sa sprava ked dame nespravnu vec
+            image = self->rectTransform.add_behaviour<Image>(lTexture->wrap.texture.get());
+
+            if (image == nullptr)
+            {
+                lua_pushnil(L);
+                return 1;
+            }
+
+            mem = lua_newuserdata(L, sizeof(LuaImage));
+            lImage = new (mem) LuaImage();
+            lImage->image = image;
+
+            luaL_getmetatable(L, "LuaImage");
+            lua_setmetatable(L, -2);
+            return 1;
+            //break;
+
+        default:
+            return luaL_error(L, "LuaRectTransform_set_values: nespravny pocet argumentov");
+            //break;
         }
-
-        void* mem = lua_newuserdata(L, sizeof(LuaImage));
-        LuaImage* ud = new (mem) LuaImage();
-
-        ud->image = image;
-
-        luaL_getmetatable(L, "LuaImage");   
-        lua_setmetatable(L, -2);
-        return 1;
     }
+    //else if (behaviourTypeStr == "Button")
+    //{
+    //
+    //}
     else
     {
         lua_pushnil(L);

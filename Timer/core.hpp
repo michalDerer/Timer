@@ -153,6 +153,7 @@ inline ImageAlignVertical operator&(ImageAlignVertical a, ImageAlignVertical b);
 
 //----------------------------------------------------------------------------------------------------------
 
+// TODO: prerobit, aby m_texture bol typu shared_ptr
 class Image : public Behaviour
 {
     SDL_Texture* m_texture;
@@ -299,6 +300,7 @@ public:
     requires std::derived_from<T, Behaviour>
     T* add_behaviour(Args&&... args)
     {
+        //TODO: bezpecnejsie je pouzit unique pointer
         /*auto behaviour = std::make_unique<T>(this, std::forward<Args>(args)...);
         T* ptr = behaviour.get();
         m_behaviours.push_back(std::move(behaviour));

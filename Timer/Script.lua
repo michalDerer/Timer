@@ -6,9 +6,10 @@ pikachu = LuaTexture.new("pika.png")
 parent = LuaRectTransform_new()
 child = LuaRectTransform.new()
 child:set_parent(parent)
-img = child:add_behaviour("Image")
+img = child:add_behaviour("Image", pikachu)
 
-values = {
+values = 
+{
     anchorMinX = 0.1,
     anchorMinY = 0.1,
     anchorMaxX = 0.9,
@@ -27,6 +28,6 @@ values.anchorMaxX = 0.7
 values.anchorMaxY = 0.7
 child:set_values(values)
 
-pikachu = nil
+--pikachu = nil
 --child = nil
-collectgarbage()
+--collectgarbage()

@@ -1,15 +1,16 @@
 
 //#include <iostream>
-#include <cstdio>
+//#include <cstdio>
 #include <filesystem>
-#include <string>
+//#include <string>
 
-#include "SDL3/SDL.h"
+//#include "SDL3/SDL.h"
 //#include "SDL3_image/SDL_image.h"
 
-#include "lua.hpp"
+//#include "lua.hpp"
 
-#include "core.hpp"
+//#include "core.hpp"
+#include "commands.hpp"
 #include "context.hpp"
 
 

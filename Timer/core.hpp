@@ -1,11 +1,8 @@
 #pragma once
 
 #include <vector>
-#include <memory>
 
 #include "SDL3/SDL.h"
-
-#include "lua.hpp"
 
 
 
@@ -153,7 +150,7 @@ inline ImageAlignVertical operator&(ImageAlignVertical a, ImageAlignVertical b);
 
 //----------------------------------------------------------------------------------------------------------
 
-// TODO: prerobit, aby m_texture bol typu shared_ptr
+// TODO: prerobit, aby m_texture bol typu shared_ptr, m_textureRect na 99 percent netrebaa staci nahradit nullom
 class Image : public Behaviour
 {
     SDL_Texture* m_texture;
@@ -342,102 +339,3 @@ public:
     }
 
 };
-
-//----------------------------------------------------------------------------------------------------------
-
-struct Wrap
-{
-    std::shared_ptr<SDL_Texture> texture;
-
-    Wrap() : texture(nullptr)
-    {
-        printf("Wrap() count: %i\n", texture.use_count());
-    }
-
-    Wrap(SDL_Texture* texture) : texture(texture, SDL_DestroyTexture)
-    {
-        printf("Wrap(SDL_Texture*) count: %i\n", this->texture.use_count());
-    }
-
-    ~Wrap()
-    {
-        printf("~Wrap() count: %i\n", texture.use_count());
-    }
-
-    Wrap& operator=(const Wrap& o) noexcept
-    {
-        if (this == &o) return *this; // self-assignment check
-
-        printf("Wrap asign copy before count: %i\n", texture.use_count());
-        texture = o.texture;
-        printf("Wrap asign copy after count: %i\n", texture.use_count());
-        return *this;
-    }
-
-    //Wrap& operator=(Wrap&& o) noexcept
-    //{
-    //    if (this == &o) return *this; // self-assignment check
-    //
-    //    printf("Wrap asign move\n");
-    //    texture.reset();
-    //    texture = std::move(o.texture);
-    //    o.texture.reset();
-    //    
-    //    return *this;
-    //}
-};
-
-struct LuaTexture
-{
-    //std::shared_ptr<SDL_Texture> texture;
-    Wrap wrap;
-
-    LuaTexture() : wrap()
-    {
-        printf("LuaTexture() count: %i\n", wrap.texture.use_count());
-    }
-
-    ~LuaTexture()
-    {
-        printf("~LuaTexture() count: %i\n", wrap.texture.use_count());
-    }
-};
-
-int LuaTexture_new(lua_State* L);
-int LuaTexture_gc(lua_State* L);
-
-void register_LuaTexture(lua_State* L);
-
-
-
-struct LuaImage
-{
-    Image* image;
-};
-
-//int LuaImage_new(lua_State* L);
-int LuaImage_gc(lua_State* L);
-
-void register_LuaImage(lua_State* L);
-
-
-
-struct LuaRectTransform
-{
-    RectTransform rectTransform;
-};
-
-int LuaRectTransform_new(lua_State* L);
-int LuaRectTransform_gc(lua_State* L);
-int LuaRectTransform_set_parent(lua_State* L);
-int LuaRectTransform_set_values(lua_State* L);
-int LuaRectTransform_add_behaviour(lua_State* L);
-
-void register_LuaRectTransform(lua_State* L);
-
-
-
-void register_API(lua_State* L);
-
-//----------------------------------------------------------------------------------------------------------
-

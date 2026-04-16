@@ -440,7 +440,7 @@ Image::Image(RectTransform* transform) :
 {
 }
 
-Image::Image(RectTransform* transform, SDL_Texture* texture) :
+Image::Image(RectTransform* transform, std::shared_ptr<SDL_Texture> texture) :
     Behaviour(transform), 
     m_texture(texture),
     m_textureRect(),
@@ -452,12 +452,12 @@ Image::Image(RectTransform* transform, SDL_Texture* texture) :
     set_texture(texture);
 }
 
-SDL_Texture* Image::get_texture()
+std::shared_ptr<SDL_Texture> Image::get_texture()
 {
     return m_texture;
 }
 
-void Image::set_texture(SDL_Texture* texture)
+void Image::set_texture(std::shared_ptr<SDL_Texture> texture)
 {
     if (!texture)
     {
@@ -490,7 +490,7 @@ void Image::update()
 
     if (m_texture)
     {
-        SDL_RenderTexture(Context::renderer, m_texture, &m_textureRect, &dRect);
+        SDL_RenderTexture(Context::renderer, m_texture.get(), &m_textureRect, &dRect);
     }
     else
     {

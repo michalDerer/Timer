@@ -22,7 +22,7 @@ void register_LuaTexture(lua_State* L);
 
 struct LuaImage
 {
-    Image* image = nullptr;
+    Image* image = nullptr; // TODO: bude weak pointer
 };
 
 //int LuaImage_new(lua_State* L);

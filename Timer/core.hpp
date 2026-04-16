@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "SDL3/SDL.h"
+#include <memory>
 
 
 
@@ -153,7 +154,7 @@ inline ImageAlignVertical operator&(ImageAlignVertical a, ImageAlignVertical b);
 // TODO: prerobit, aby m_texture bol typu shared_ptr, m_textureRect na 99 percent netrebaa staci nahradit nullom
 class Image : public Behaviour
 {
-    SDL_Texture* m_texture;
+    std::shared_ptr<SDL_Texture> m_texture;
     SDL_FRect m_textureRect;
     float m_textureAsp;
 
@@ -171,22 +172,22 @@ public:
 
 public:
 
-    Image()                                                 = delete;   //default constructor
+    Image()                                                                 = delete;   //default constructor
     Image(RectTransform* transform);
-    Image(RectTransform* transform, SDL_Texture* texture);
+    Image(RectTransform* transform, std::shared_ptr<SDL_Texture> texture);
 
-    Image(const Image& other)                               = delete;   //copy constructor
-    Image& operator=(const Image& other)                    = delete;   //copy assignment
+    Image(const Image& other)                                               = delete;   //copy constructor
+    Image& operator=(const Image& other)                                    = delete;   //copy assignment
 
-    Image(Image&& other) noexcept                           = delete;   //move constructor
-    Image& operator=(Image&& other) noexcept                = delete;   //move assignment
+    Image(Image&& other) noexcept                                           = delete;   //move constructor
+    Image& operator=(Image&& other) noexcept                                = delete;   //move assignment
 
-    ~Image() override                                       = default;
+    ~Image() override                                                       = default;
 
 
 
-    SDL_Texture* get_texture();
-    void set_texture(SDL_Texture* texture);
+    std::shared_ptr<SDL_Texture> get_texture();
+    void set_texture(std::shared_ptr<SDL_Texture> texture);
 
 
 

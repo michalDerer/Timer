@@ -31,7 +31,7 @@ int LuaTexture_new(lua_State* L)
         return luaL_error(L, "LuaTexture_new: Context::pathExe nemoze byt null");
     }
 
-    // netestujem spravnost formatu cesty, anim ci ukazuje na existujuci asset
+    // netestujem spravnost formatu cesty, ani ci ukazuje na existujuci asset
     std::string fullPath = std::string{ Context::pathExe } + relativePath;
     printf("LuaTexture_new: fullPath: %s\n", fullPath.c_str());
 
@@ -64,8 +64,8 @@ int LuaTexture_new(lua_State* L)
     LuaTexture* lTexture = new (mem) LuaTexture();
     lTexture->texture = std::shared_ptr<SDL_Texture>(texture, SDL_DestroyTexture);
     
-    luaL_getmetatable(L, "LuaTexture");     // pusne do staku na koniec metatable LuaTexture
-    lua_setmetatable(L, -2);                // setne metatable, popne 
+    luaL_getmetatable(L, "LuaTexture");     // pusne na vrch staku metatable LuaTexture
+    lua_setmetatable(L, -2);                // setne metatable do userdata, popne metatable z vrchu
 
     return 1;
 }
@@ -348,7 +348,7 @@ int LuaRectTransform_add_behaviour(lua_State* L)
 
             mem = lua_newuserdata(L, sizeof(LuaImage));
             lImage = new (mem) LuaImage();
-            lImage->image = image;
+            lImage->image = image;                          // TODO: prerobit na weak pointer
 
             luaL_getmetatable(L, "LuaImage");
             lua_setmetatable(L, -2);
